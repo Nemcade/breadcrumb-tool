@@ -1,0 +1,58 @@
+.panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.card {
+  border: 1px solid #eee;
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 10px;
+  background: var(--card);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.cardTitleInput {
+  font-size: 16px;
+  font-weight: 700;
+  width: 100%;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  background: white;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tabBtn {
+  padding: 8px 10px;
+  border-radius: var(--radius2);
+  border: 1px solid var(--border);
+  background: white;
+}
+
+.tabBtn.active {
+  background: var(--bg2);
+}
