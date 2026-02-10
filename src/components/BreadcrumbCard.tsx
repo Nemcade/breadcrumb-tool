@@ -102,10 +102,12 @@ export default function BreadcrumbCard({
       <div style={{ marginTop: 10 }}>
         <label>Next stage tags</label>
         <CsvInput
-          value={b.nextStageTags}
-          onChange={(nextStageTags) => update({ nextStageTags })}
-          placeholder="EnterGraahl, PipeLead"
-        />
+  label="Next Stage Tags"
+  values={b.nextStageTags}
+  onChange={(nextStageTags) => update({ nextStageTags })}
+  placeholder="e.g. GetKey, PipeLead"
+/>
+
       </div>
 
       <div style={{ marginTop: 12 }}>
@@ -132,7 +134,12 @@ export default function BreadcrumbCard({
 
       <div style={{ marginTop: 12 }}>
         <label>Requirements</label>
-        <RequirementEditor b={b} store={store} setStore={setStore} />
+        <RequirementEditor
+  requirements={b.requirements}
+  setRequirements={(requirements) => update({ requirements })}
+  store={store}
+/>
+
       </div>
 
       <div className="muted" style={{ marginTop: 10 }}>

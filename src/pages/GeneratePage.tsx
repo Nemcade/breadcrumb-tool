@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import type { ContentStore, Indexes, RunConfig, JourneyStep } from "../core/types";
 import { generateJourney } from "../core/generator";
 
@@ -16,9 +16,16 @@ export default function GeneratePage({
 }) {
   const [journey, setJourney] = useState<JourneyStep[]>([]);
   const [issues, setIssues] = useState<string[]>([]);
+  const [randomizeSeedOnGenerate, setRandomizeSeedOnGenerate] = useState<boolean>(true);
 
   function onGenerate() {
-    const res = generateJourney(store, cfg);
+    const seedToUse = randomizeSeedOnGenerate ? Date.now() : cfg.seed;
+    const cfgToUse: RunConfig = randomizeSeedOnGenerate ? { ...cfg, seed: seedToUse } : cfg;
+
+    // Keep UI config in sync with what we actually generated.
+    if (randomizeSeedOnGenerate) setCfg(cfgToUse);
+
+    const res = generateJourney(store, cfgToUse);
     setJourney(res.steps);
     setIssues(res.issues);
   }
@@ -40,12 +47,33 @@ export default function GeneratePage({
         <h3 style={{ marginTop: 0 }}>Run Config</h3>
 
         <label>Seed</label>
-        <input type="number" value={cfg.seed} onChange={(e) => setCfg((c) => ({ ...c, seed: Number(e.target.value) }))} />
+        <input
+          type="number"
+          value={cfg.seed}
+          onChange={(e) => setCfg((c) => ({ ...c, seed: Number(e.target.value) }))}
+          disabled={randomizeSeedOnGenerate}
+          title={randomizeSeedOnGenerate ? "Disable randomize to edit seed manually" : "Set a fixed seed"}
+        />
+
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+          <input
+            type="checkbox"
+            checked={randomizeSeedOnGenerate}
+            onChange={(e) => setRandomizeSeedOnGenerate(e.target.checked)}
+          />
+          Randomize seed on Generate
+        </label>
 
         <div style={{ height: 8 }} />
 
         <label>Chain length</label>
-        <input type="number" min={1} max={50} value={cfg.chainLength} onChange={(e) => setCfg((c) => ({ ...c, chainLength: Number(e.target.value) }))} />
+        <input
+          type="number"
+          min={1}
+          max={50}
+          value={cfg.chainLength}
+          onChange={(e) => setCfg((c) => ({ ...c, chainLength: Number(e.target.value) }))}
+        />
 
         <div style={{ height: 8 }} />
 
@@ -116,6 +144,8 @@ export default function GeneratePage({
               const providerStr =
                 s.provider.type === "npc"
                   ? ix.npcsById.get(s.provider.npcId)?.name ?? s.provider.npcId
+                  : s.provider.type === "item"
+                  ? ix.itemsById.get(s.provider.itemId)?.name ?? s.provider.itemId
                   : s.provider.type;
 
               return (
@@ -125,8 +155,7 @@ export default function GeneratePage({
                   </div>
                   <div className="muted">{opt.text}</div>
                   <div className="muted" style={{ marginTop: 4 }}>
-                    <b>Stage:</b> {s.stageTag} · <b>Provider:</b> {providerStr} · <b>Next:</b>{" "}
-                    {opt.nextStageTags.join(", ") || "—"}
+                    <b>Stage:</b> {s.stageTag} · <b>Provider:</b> {providerStr} · <b>Next:</b> {opt.nextStageTags.join(", ") || "—"}
                   </div>
                 </li>
               );

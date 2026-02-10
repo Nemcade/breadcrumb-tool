@@ -1,13 +1,4 @@
-import type {
-  BreadcrumbOption,
-  ContentStore,
-  JourneyStep,
-  NPC,
-  RunConfig,
-  StepProvider,
-  Tier,
-  Requirement,
-} from "../core/types";
+import type { BreadcrumbOption, ContentStore, JourneyStep, RunConfig, StepProvider } from "../core/types";
 
 function mulberry32(seed: number) {
   let t = seed >>> 0;
@@ -22,33 +13,14 @@ function mulberry32(seed: number) {
 function pickWeighted<T>(rng: () => number, items: Array<{ item: T; weight: number }>) {
   const total = items.reduce((a, b) => a + Math.max(0, b.weight), 0);
   if (total <= 0) return null;
+
   let r = rng() * total;
   for (const it of items) {
     r -= Math.max(0, it.weight);
     if (r <= 0) return it.item;
   }
+
   return items[items.length - 1]?.item ?? null;
-}
-
-function tierToRespect(tier: Tier) {
-  // simple mapping: tier 0..3 == minimum respect required
-  return tier;
-}
-
-function reqsMet(reqs: Requirement[], cfg: RunConfig, allowBlockedFallbackOnly: boolean) {
-  for (const r of reqs) {
-    if (r.kind === "always") continue;
-
-    if (r.kind === "blockedFallbackOnly") {
-      if (!allowBlockedFallbackOnly) return false;
-      continue;
-    }
-
-    if (r.kind === "respectAtLeast") {
-      if ((cfg.respect[r.factionId] ?? 0) < r.value) return false;
-    }
-  }
-  return true;
 }
 
 function isFactionPresent(cfg: RunConfig, factionId: string | null) {
@@ -57,72 +29,52 @@ function isFactionPresent(cfg: RunConfig, factionId: string | null) {
 }
 
 /**
- * Which breadcrumb options can appear at this stage?
+ * Brother’s Journey:
+ * - ignores requirements and respect entirely
+ * - filters only isMainJourney + stageTag rules
  */
-function eligibleOptionsForStage(store: ContentStore, cfg: RunConfig, stageTag: string) {
-  // We keep the simple stage system:
-  // - Exact stageTag matches
-  // - "Any" allowed for non-Start stages
-  const options = store.breadcrumbs.filter(
-    (o) => o.stageTag === stageTag || (o.stageTag === "Any" && stageTag !== "Start")
-  );
+function eligibleOptionsForStage(store: ContentStore, stageTag: string) {
+  return store.breadcrumbs.filter((o) => {
+    if (o.isMainJourney === false) return false;
 
-  // Requirements can be met either normally or via fallback-only rules.
-  return options.filter((o) => reqsMet(o.requirements, cfg, false) || reqsMet(o.requirements, cfg, true));
+    // stage match rules:
+    // - Exact stageTag matches
+    // - "Any" allowed for non-Start stages
+    return o.stageTag === stageTag || (o.stageTag === "Any" && stageTag !== "Start");
+  });
 }
 
 /**
- * Resolve a concrete provider for a chosen breadcrumb.
- * - Try breadcrumb.providerRefs in order
- * - If none eligible, use global tavernkeeper fallback (when stageBlocked==true)
+ * Pick one provider witness from the breadcrumb's provider pool.
+ * Brother’s Journey ignores tier/respect gating.
  */
 function resolveProviderRef(
   store: ContentStore,
   option: BreadcrumbOption,
   cfg: RunConfig,
-  stageBlocked: boolean
-): { provider: StepProvider; usedFallback: boolean } | null {
-  // First: must meet non-fallback requirements
-  if (!reqsMet(option.requirements, cfg, false)) {
-    // If requirements include blockedFallbackOnly, allow it only in blocked mode
-    if (!(stageBlocked && reqsMet(option.requirements, cfg, true))) return null;
-  }
+  rng: () => number
+): StepProvider | null {
+  const candidates: StepProvider[] = [];
 
-  // 1) Try the explicitly listed providers (concrete NPCs / Items)
   for (const ref of option.providerRefs) {
     if (ref.type === "npc") {
-      const npc: NPC | undefined = store.npcs.find((n) => n.id === ref.id);
+      const npc = store.npcs.find((n) => n.id === ref.id);
       if (!npc) continue;
-
       if (!isFactionPresent(cfg, npc.factionId)) continue;
-
-      // NPC tier is a default "min respect" requirement for talking
-      if (npc.factionId) {
-        const need = tierToRespect(npc.tier);
-        if ((cfg.respect[npc.factionId] ?? 0) < need) continue;
-      }
-
-      return { provider: { type: "npc", npcId: npc.id }, usedFallback: false };
+      candidates.push({ type: "npc", npcId: npc.id });
+      continue;
     }
 
     if (ref.type === "item") {
       const item = store.items.find((it) => it.id === ref.id);
       if (!item) continue;
-
-      // Items currently have no faction gating (later you can add "guarded by" etc.)
-      return { provider: { type: "item", itemId: item.id }, usedFallback: false };
+      candidates.push({ type: "item", itemId: item.id });
+      continue;
     }
   }
 
-  // 2) If we can’t resolve a provider and we are not blocked, fail
-  if (!stageBlocked) return null;
-
-  // 3) Global tavernkeeper fallback:
-  // Prefer any NPC with role "tavernkeeper" that is in a present faction (or unaffiliated)
-  const inns = store.npcs.filter((n) => Array.isArray(n.roles) && n.roles.includes("tavernkeeper") && isFactionPresent(cfg, n.factionId));
-  if (inns[0]) return { provider: { type: "npc", npcId: inns[0].id }, usedFallback: true };
-
-  return { provider: { type: "tavernkeeper" }, usedFallback: true };
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(rng() * candidates.length)]!;
 }
 
 export function generateJourney(store: ContentStore, cfg: RunConfig): { steps: JourneyStep[]; issues: string[] } {
@@ -132,51 +84,50 @@ export function generateJourney(store: ContentStore, cfg: RunConfig): { steps: J
 
   let stage = cfg.startStageTag;
 
+  // Prevent using the same breadcrumb option more than once in a single generated journey.
+  const usedOptionIds = new Set<string>();
+
   for (let i = 0; i < cfg.chainLength; i++) {
-    const options = eligibleOptionsForStage(store, cfg, stage);
+    // Exclude already-used options
+    const options = eligibleOptionsForStage(store, stage).filter((o) => !usedOptionIds.has(o.id));
     const weighted = options.map((o) => ({ item: o, weight: o.weight ?? 1 }));
 
     let chosen: BreadcrumbOption | null = null;
-    let chosenProv: { provider: StepProvider; usedFallback: boolean } | null = null;
+    let provider: StepProvider | null = null;
 
-    // Try a few random draws so weight matters, but don’t loop forever
+    // Try a few weighted draws so weight matters, but don't loop forever.
     for (let attempt = 0; attempt < 16; attempt++) {
       const candidate = pickWeighted(rng, weighted);
       if (!candidate) break;
 
-      // First try without fallback; if none, try with fallback
-      const normal = resolveProviderRef(store, candidate, cfg, false);
-      if (normal) {
-        chosen = candidate;
-        chosenProv = normal;
-        break;
-      }
+      const prov = resolveProviderRef(store, candidate, cfg, rng);
+      if (!prov) continue;
 
-      const fallback = resolveProviderRef(store, candidate, cfg, true);
-      if (fallback) {
-        chosen = candidate;
-        chosenProv = fallback;
-        break;
-      }
-    }
-
-    if (!chosen || !chosenProv) {
-      issues.push(`Blocked at step ${i + 1} (stage: ${stage}) — no eligible breadcrumb/provider.`);
+      chosen = candidate;
+      provider = prov;
       break;
     }
+
+    if (!chosen || !provider) {
+      issues.push(
+        `Blocked at step ${i + 1} (stage: ${stage}) — no eligible main breadcrumb/provider (or all options already used).`
+      );
+      break;
+    }
+
+    usedOptionIds.add(chosen.id);
 
     steps.push({
       idx: i,
       stageTag: stage,
       optionId: chosen.id,
-      provider: chosenProv.provider,
-      usedFallback: chosenProv.usedFallback,
+      provider,
+      usedFallback: false, // Brother’s Journey never uses fallback logic
     });
 
+    // Advance stage by picking a nextStageTag (if none exist, stay in current stage)
     const next =
-      chosen.nextStageTags.length > 0
-        ? chosen.nextStageTags[Math.floor(rng() * chosen.nextStageTags.length)]
-        : stage;
+      chosen.nextStageTags.length > 0 ? chosen.nextStageTags[Math.floor(rng() * chosen.nextStageTags.length)] : stage;
 
     stage = next;
   }

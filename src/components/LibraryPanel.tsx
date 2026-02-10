@@ -5,7 +5,8 @@ function includes(hay: string, needle: string) {
   return hay.toLowerCase().includes(needle.toLowerCase());
 }
 
-function providerLabel(store: ContentStore, ix: Indexes, ref: ProviderRef): string {
+function providerLabel(ix: Indexes, ref: ProviderRef): string {
+
   if (ref.type === "npc") {
     const n = ix.npcsById.get(ref.id);
     if (!n) return `NPC:${ref.id}`;
@@ -63,7 +64,7 @@ export default function LibraryPanel({
 
     const refs = [...npcRefs, ...itemRefs].filter((ref) => {
       if (!q.trim()) return true;
-      const label = providerLabel(store, ix, ref);
+      const label = providerLabel(ix, ref);
       return includes(label, q);
     });
 
@@ -72,7 +73,8 @@ export default function LibraryPanel({
       const ak = a.type === "npc" ? "0" : "1";
       const bk = b.type === "npc" ? "0" : "1";
       if (ak !== bk) return ak.localeCompare(bk);
-      return providerLabel(store, ix, a).localeCompare(providerLabel(store, ix, b));
+      return providerLabel(ix, a).localeCompare(providerLabel(ix, b));
+
     });
 
     return refs;
@@ -161,7 +163,8 @@ export default function LibraryPanel({
         onClick={() => onAddProviderToSelected(ref)}
         style={{ width: "100%", textAlign: "left", marginBottom: 6 }}
       >
-        <div style={{ fontSize: 13 }}>{providerLabel(store, ix, ref)}</div>
+        <div style={{ fontSize: 13 }}>{providerLabel(ix, ref)}</div>
+
       </button>
     </div>
   );

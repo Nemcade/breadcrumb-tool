@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import type { ContentStore, Indexes, BreadcrumbId, ProviderRef, BreadcrumbOption } from "../core/types";
-import RequirementEditor from "./RequirementEditor";
 import DropZone from "../ui/DropZone";
 
-function providerShortLabel(store: ContentStore, ix: Indexes, ref: ProviderRef): string {
+function providerShortLabel(ix: Indexes, ref: ProviderRef): string {
   if (ref.type === "npc") {
     const n = ix.npcsById.get(ref.id);
     if (!n) return `NPC:${ref.id}`;
@@ -123,6 +122,21 @@ export default function BreadcrumbEditor({
         </div>
       </div>
 
+      {/* isMainJourney toggle */}
+      <div className="row" style={{ marginTop: 10, gap: 10, alignItems: "center" }}>
+        <label className="row" style={{ gap: 8, alignItems: "center", margin: 0 }}>
+          <input
+            type="checkbox"
+            checked={!!(b as any).isMainJourney}
+            onChange={(e) => update({ isMainJourney: e.target.checked } as any)}
+          />
+          <span>Eligible for Brother’s Journey</span>
+        </label>
+        <div className="muted" style={{ fontSize: 12 }}>
+          If off, this breadcrumb can exist in the world but will never be chosen for the generated brother chain.
+        </div>
+      </div>
+
       <div style={{ marginTop: 12 }}>
         <label>Text (what is learned)</label>
         <textarea value={b.text} rows={4} onChange={(e) => update({ text: e.target.value })} />
@@ -145,7 +159,7 @@ export default function BreadcrumbEditor({
       <div style={{ marginTop: 14 }}>
         <b>Providers (pool)</b>
         <div className="muted" style={{ marginTop: 4 }}>
-          Add via Library (Providers tab) or drag-drop. Generator picks one eligible provider from this pool.
+          Add via Library (Providers tab) or drag-drop. Generator picks one provider from this pool.
         </div>
 
         <div style={{ marginTop: 10 }}>
@@ -161,7 +175,7 @@ export default function BreadcrumbEditor({
             <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
               {b.providerRefs.map((ref) => (
                 <div key={`${ref.type}:${ref.id}`} className="row" style={{ justifyContent: "space-between", gap: 10 }}>
-                  <div style={{ fontSize: 13 }}>{providerShortLabel(store, ix, ref)}</div>
+                  <div style={{ fontSize: 13 }}>{providerShortLabel(ix, ref)}</div>
                   <button
                     onClick={() =>
                       update({ providerRefs: b.providerRefs.filter((x) => !(x.type === ref.type && x.id === ref.id)) })
@@ -181,14 +195,6 @@ export default function BreadcrumbEditor({
             acceptPrefix="provider:"
             onDropId={onDropProvider}
           />
-        </div>
-      </div>
-
-      {/* Requirements */}
-      <div style={{ marginTop: 14 }}>
-        <b>Requirements</b>
-        <div style={{ marginTop: 8 }}>
-          <RequirementEditor requirements={b.requirements} setRequirements={(requirements) => update({ requirements })} store={store} />
         </div>
       </div>
 

@@ -39,6 +39,7 @@ export default function BreadcrumbsPage({
           requirements: [],
           nextStageTags: [],
           weight: 1,
+		  isMainJourney: true,
         },
       ],
     }));

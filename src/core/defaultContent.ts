@@ -1,6 +1,5 @@
 import type { ContentStore, Faction, Location, NPC, BreadcrumbOption, ItemProvider } from "../core/types";
 
-
 export function defaultContent(): ContentStore {
   // --- Factions ---
   const bastion: Faction = { id: "bastion", name: "Bastion Court" };
@@ -12,25 +11,25 @@ export function defaultContent(): ContentStore {
   // --- Locations (simple hierarchy) ---
   const loc: Location[] = [
     // Regions
-    { id: "reg_surface", name: "Surface", kind: "region", parentId: null, tags: ["surface"] },
-    { id: "reg_mid", name: "Mid-Depth", kind: "region", parentId: null, tags: ["mid"] },
-    { id: "reg_depths", name: "Depths", kind: "region", parentId: null, tags: ["deep"] },
+    { id: "reg_surface", name: "Surface", kind: "region", parentId: null, biomeIds: [], defaultBiomeId: null, tags: ["surface"] },
+    { id: "reg_mid", name: "Mid-Depth", kind: "region", parentId: null, biomeIds: [], defaultBiomeId: null, tags: ["mid"] },
+    { id: "reg_depths", name: "Depths", kind: "region", parentId: null, biomeIds: [], defaultBiomeId: null, tags: ["deep"] },
 
     // Settlements / hubs
-    { id: "set_gate", name: "Gate Settlement", kind: "settlement", parentId: "reg_surface", tags: ["hub", "bastion"] },
-    { id: "set_pipeyard", name: "Pipeyard", kind: "settlement", parentId: "reg_mid", tags: ["hub", "pipe"] },
-    { id: "set_rootden", name: "Rootden", kind: "settlement", parentId: "reg_mid", tags: ["hub", "root"] },
+    { id: "set_gate", name: "Gate Settlement", kind: "settlement", parentId: "reg_surface", biomeIds: [], defaultBiomeId: null, tags: ["hub", "bastion"] },
+    { id: "set_pipeyard", name: "Pipeyard", kind: "settlement", parentId: "reg_mid", biomeIds: [], defaultBiomeId: null, tags: ["hub", "pipe"] },
+    { id: "set_rootden", name: "Rootden", kind: "settlement", parentId: "reg_mid", biomeIds: [], defaultBiomeId: null, tags: ["hub", "root"] },
 
     // Landmarks inside Gate Settlement
-    { id: "lm_tavern", name: "The Bent Lantern (Tavern)", kind: "landmark", parentId: "set_gate", tags: ["tavern"] },
-    { id: "lm_barracks", name: "Bastion Barracks", kind: "landmark", parentId: "set_gate", tags: ["bastion", "guard"] },
-    { id: "lm_graahl_gate", name: "Graahl Seal-Door", kind: "landmark", parentId: "set_gate", tags: ["gate", "locked"] },
+    { id: "lm_tavern", name: "The Bent Lantern (Tavern)", kind: "landmark", parentId: "set_gate", biomeIds: [], defaultBiomeId: null, tags: ["tavern"] },
+    { id: "lm_barracks", name: "Bastion Barracks", kind: "landmark", parentId: "set_gate", biomeIds: [], defaultBiomeId: null, tags: ["bastion", "guard"] },
+    { id: "lm_graahl_gate", name: "Graahl Seal-Door", kind: "landmark", parentId: "set_gate", biomeIds: [], defaultBiomeId: null, tags: ["gate", "locked"] },
 
     // Landmarks elsewhere
-    { id: "lm_pipe_valves", name: "Valve-Rack Gallery", kind: "landmark", parentId: "set_pipeyard", tags: ["pipe", "machinery"] },
-    { id: "lm_root_trapline", name: "Trapline Hollows", kind: "landmark", parentId: "set_rootden", tags: ["root", "traps"] },
-    { id: "lm_crypt_choir", name: "Choir Crypt", kind: "landmark", parentId: "reg_depths", tags: ["umbral", "ritual"] },
-    { id: "lm_astral_niche", name: "Astral Niche", kind: "landmark", parentId: "reg_depths", tags: ["astral", "hidden"] },
+    { id: "lm_pipe_valves", name: "Valve-Rack Gallery", kind: "landmark", parentId: "set_pipeyard", biomeIds: [], defaultBiomeId: null, tags: ["pipe", "machinery"] },
+    { id: "lm_root_trapline", name: "Trapline Hollows", kind: "landmark", parentId: "set_rootden", biomeIds: [], defaultBiomeId: null, tags: ["root", "traps"] },
+    { id: "lm_crypt_choir", name: "Choir Crypt", kind: "landmark", parentId: "reg_depths", biomeIds: [], defaultBiomeId: null, tags: ["umbral", "ritual"] },
+    { id: "lm_astral_niche", name: "Astral Niche", kind: "landmark", parentId: "reg_depths", biomeIds: [], defaultBiomeId: null, tags: ["astral", "hidden"] },
   ];
 
   // --- NPCs ---
@@ -111,7 +110,7 @@ export function defaultContent(): ContentStore {
     },
   ];
 
-  // --- Items (these are your place-anchored providers: notes, chests, etc.) ---
+  // --- Items (place-anchored providers: notes, chests, etc.) ---
   const items: ItemProvider[] = [
     {
       id: "item_barracks_chest_key",
@@ -155,7 +154,7 @@ export function defaultContent(): ContentStore {
     },
   ];
 
-  // --- Breadcrumb options (beats). Each beat picks concrete providers from NPCs/Items ---
+  // --- Breadcrumb options (beats) ---
   const breadcrumbs: BreadcrumbOption[] = [
     // START
     {
@@ -170,6 +169,7 @@ export function defaultContent(): ContentStore {
       requirements: [],
       nextStageTags: ["GraahlLocked"],
       weight: 3,
+	  isMainJourney: true,
     },
 
     // GRAAHL LOCKED
@@ -185,6 +185,7 @@ export function defaultContent(): ContentStore {
       requirements: [],
       nextStageTags: ["GetKey"],
       weight: 3,
+	  isMainJourney: true,
     },
 
     // GET KEY (respect route)
@@ -197,6 +198,7 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "respectAtLeast", factionId: "bastion", value: 1 }],
       nextStageTags: ["EnterGraahl"],
       weight: 2,
+	  isMainJourney: true,
     },
 
     // GET KEY (heist route)
@@ -209,6 +211,7 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "always" }],
       nextStageTags: ["EnterGraahl"],
       weight: 2,
+	  isMainJourney: true,
     },
 
     // ENTER GRAAHL
@@ -221,6 +224,7 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "always" }],
       nextStageTags: ["PipeLead"],
       weight: 3,
+	  isMainJourney: true,
     },
 
     // PIPE LEAD
@@ -236,6 +240,7 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "respectAtLeast", factionId: "pipe", value: 1 }],
       nextStageTags: ["DeeperRoute"],
       weight: 3,
+	  isMainJourney: true,
     },
 
     // DEEPER ROUTE
@@ -251,6 +256,7 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "always" }],
       nextStageTags: ["UmbralWhisper", "AstralWhisper"],
       weight: 2,
+	  isMainJourney: true,
     },
 
     // UMBRAL
@@ -266,6 +272,7 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "respectAtLeast", factionId: "umbral", value: 2 }],
       nextStageTags: ["FinalTrail"],
       weight: 2,
+	  isMainJourney: true,
     },
 
     // ASTRAL
@@ -278,9 +285,10 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "respectAtLeast", factionId: "astral", value: 2 }],
       nextStageTags: ["FinalTrail"],
       weight: 2,
+	  isMainJourney: true,
     },
 
-    // FINAL (not literally brother yet; just the last breadcrumb beat in this sample)
+    // FINAL
     {
       id: "bc_final_trail",
       title: "Final trail: the last region lies ahead",
@@ -290,15 +298,17 @@ export function defaultContent(): ContentStore {
       requirements: [{ kind: "always" }],
       nextStageTags: [],
       weight: 1,
+	  isMainJourney: true,
     },
   ];
 
   return {
-    version: 2,
+    version: 3,
     factions: [bastion, root, pipe, umbral, astral],
     locations: loc,
     npcs,
     items,
     breadcrumbs,
+    connections: [],
   };
 }

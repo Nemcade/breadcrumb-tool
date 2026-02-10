@@ -17,7 +17,16 @@ export type Location = {
   id: LocationId;
   name: string;
   kind: LocationKind;
+
+  // single-parent tree; “many children” is derived by filtering on parentId
   parentId: LocationId | null;
+
+  // biome overlay (biomes can span areas; multi-select)
+  biomeIds: LocationId[];
+
+  // used mainly by regions; inherited if descendant has no biomeIds
+  defaultBiomeId: LocationId | null;
+
   tags: string[];
 };
 
@@ -26,7 +35,7 @@ export type NPC = {
   name: string;
   factionId: FactionId | null; // null = unaffiliated
   roles: string[];
-  tier: Tier; // also used as default min respect for that NPC (tier 0..3)
+  tier: Tier;
   locationId: LocationId | null;
   notes: string;
 };
@@ -44,36 +53,45 @@ export type ItemProvider = {
 
 export type Requirement =
   | { kind: "always" }
-  // Keep for compatibility / optional usage. You can ignore it if you do global tavern fallback.
   | { kind: "blockedFallbackOnly" }
   | { kind: "respectAtLeast"; factionId: FactionId; value: number };
 
 /**
  * Concrete providers chosen from content lists.
- * (No more role queries/specs in breadcrumbs.)
  */
 export type ProviderRef = { type: "npc"; id: NPCId } | { type: "item"; id: ItemId };
 
 export type BreadcrumbOption = {
   id: BreadcrumbId;
   title: string;
-
-  // Used by generator to pick appropriate beats
   stageTag: string;
-
-  // What is learned / revealed at this step
   text: string;
 
-  // Concrete providers that can deliver this breadcrumb (NPC or Item)
+  // chosen pool (one provider will be picked at runtime)
   providerRefs: ProviderRef[];
 
+  // still in schema for now (you plan to remove from UI next)
   requirements: Requirement[];
 
-  // Stage tags the generator can transition to
   nextStageTags: string[];
-
-  // Weighted pick among eligible options
   weight: number;
+
+  // NEW: main path toggle (lets generator ignore side content)
+  isMainJourney: boolean;
+};
+
+export type Gate =
+  | { kind: "open" }
+  | { kind: "key"; keyItemId: ItemId }
+  | { kind: "respect"; factionId: FactionId; value: number }
+  | { kind: "power"; powerId: string };
+
+export type Connection = {
+  id: Id;
+  fromId: LocationId;
+  toId: LocationId;
+  gate: Gate;
+  notes: string;
 };
 
 export type ContentStore = {
@@ -83,17 +101,14 @@ export type ContentStore = {
   npcs: NPC[];
   items: ItemProvider[];
   breadcrumbs: BreadcrumbOption[];
+  connections: Connection[];
 };
 
 export type RunConfig = {
   seed: number;
   chainLength: number;
   startStageTag: string;
-
-  // Which factions exist in this run
   factionsPresent: Record<string, boolean>;
-
-  // Runtime respect values (simulation/testing)
   respect: Record<string, number>;
 };
 
@@ -117,4 +132,3 @@ export type Indexes = {
   itemsById: Map<ItemId, ItemProvider>;
   breadcrumbsById: Map<BreadcrumbId, BreadcrumbOption>;
 };
-
