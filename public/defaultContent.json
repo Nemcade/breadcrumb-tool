@@ -1,0 +1,476 @@
+{
+  "version": 3,
+  "factions": [
+    {
+      "id": "bastion",
+      "name": "Bastion Court"
+    },
+    {
+      "id": "root",
+      "name": "Root-Cairn Clans"
+    },
+    {
+      "id": "pipe",
+      "name": "Pipewright Union"
+    }
+  ],
+  "locations": [
+    {
+      "id": "reg_surface",
+      "name": "Surface",
+      "kind": "region",
+      "parentId": null,
+      "biomeIds": [],
+      "defaultBiomeId": "loc_w0feiu3",
+      "tags": [
+        "surface"
+      ]
+    },
+    {
+      "id": "reg_depths",
+      "name": "Depths",
+      "kind": "region",
+      "parentId": null,
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": [
+        "deep"
+      ]
+    },
+    {
+      "id": "set_gate",
+      "name": "Gate Settlement",
+      "kind": "settlement",
+      "parentId": "reg_surface",
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": [
+        "hub"
+      ]
+    },
+    {
+      "id": "lm_tavern",
+      "name": "The Bent Lantern (Tavern)",
+      "kind": "landmark",
+      "parentId": "set_gate",
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": [
+        "tavern"
+      ]
+    },
+    {
+      "id": "bio_roots",
+      "name": "Root-Cairn Tunnels",
+      "kind": "biome",
+      "parentId": null,
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": [
+        "caves"
+      ]
+    },
+    {
+      "id": "lm_graahl",
+      "name": "Graahl Door",
+      "kind": "landmark",
+      "parentId": "reg_surface",
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": [
+        "gate"
+      ]
+    },
+    {
+      "id": "loc_he6dubybhqi",
+      "name": "New Location",
+      "kind": "region",
+      "parentId": null,
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": []
+    },
+    {
+      "id": "loc_w0feiu3",
+      "name": "New biome",
+      "kind": "biome",
+      "parentId": null,
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": []
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_innkeep",
+      "name": "Innkeep Salla",
+      "factionId": null,
+      "roles": [
+        "tavernkeeper",
+        "host"
+      ],
+      "tier": 0,
+      "locationId": "loc_he6dubybhqi",
+      "notes": "Knows rumors. Only gives direction when everyone else is blocked."
+    },
+    {
+      "id": "npc_chief",
+      "name": "Vell the Chieftain",
+      "factionId": "bastion",
+      "roles": [
+        "chieftain"
+      ],
+      "tier": 3,
+      "locationId": "bio_roots",
+      "notes": "Holds keys, demands service or submission."
+    },
+    {
+      "id": "npc_mech",
+      "name": "Mivvi Brass-Ear",
+      "factionId": "pipe",
+      "roles": [
+        "mechanic",
+        "merchant"
+      ],
+      "tier": 1,
+      "locationId": "lm_graahl",
+      "notes": "Trades passage intel for favors."
+    },
+    {
+      "id": "npc_scout",
+      "name": "Rusk of the Roots",
+      "factionId": "root",
+      "roles": [
+        "scout",
+        "trapper"
+      ],
+      "tier": 1,
+      "locationId": "bio_roots",
+      "notes": "Moves unseen, leaves signs in fungus and bone."
+    },
+    {
+      "id": "npc_usrs1dg",
+      "name": "Start Guy",
+      "factionId": null,
+      "roles": [
+        "guide"
+      ],
+      "tier": 0,
+      "locationId": "reg_surface",
+      "notes": ""
+    },
+    {
+      "id": "npc_8irgk3t",
+      "name": "End Guy",
+      "factionId": null,
+      "roles": [
+        "guard"
+      ],
+      "tier": 0,
+      "locationId": null,
+      "notes": ""
+    }
+  ],
+  "items": [
+    {
+      "id": "item_kx9rm62che3",
+      "name": "Chest (migrated)",
+      "kind": "chest",
+      "locationId": null,
+      "notes": "",
+      "tags": [
+        "migrated"
+      ]
+    },
+    {
+      "id": "item_6xaef40che3",
+      "name": "Chest (migrated)",
+      "kind": "chest",
+      "locationId": null,
+      "notes": "",
+      "tags": [
+        "migrated"
+      ]
+    },
+    {
+      "id": "item_hmvu1y6che3",
+      "name": "Note (migrated)",
+      "kind": "note",
+      "locationId": null,
+      "notes": "",
+      "tags": [
+        "migrated"
+      ]
+    },
+    {
+      "id": "item_3n9nx9xche3",
+      "name": "Note (migrated)",
+      "kind": "note",
+      "locationId": null,
+      "notes": "",
+      "tags": [
+        "migrated"
+      ]
+    },
+    {
+      "id": "item_me3ep5gche3",
+      "name": "Chest (migrated)",
+      "kind": "chest",
+      "locationId": null,
+      "notes": "",
+      "tags": [
+        "migrated"
+      ]
+    },
+    {
+      "id": "item_9lzsi0rche3",
+      "name": "Note (migrated)",
+      "kind": "note",
+      "locationId": null,
+      "notes": "",
+      "tags": [
+        "migrated"
+      ]
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "id": "bc_start_rumor",
+      "title": "Rumor: argument about Graahl",
+      "stageTag": "GraahlLocked",
+      "text": "You hear your brother argued with an officer about a sealed door called Graahl.",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_innkeep"
+        },
+        {
+          "type": "npc",
+          "id": "npc_mech"
+        },
+        {
+          "type": "item",
+          "id": "item_kx9rm62che3"
+        }
+      ],
+      "requirements": [],
+      "nextStageTags": [
+        "GraahlLocked",
+        "GetKey",
+        "Start"
+      ],
+      "weight": 3,
+      "isMainJourney": true
+    },
+    {
+      "id": "bc_graahl_locked",
+      "title": "Graahl is locked (key kept by leadership)",
+      "stageTag": "GraahlLocked",
+      "text": "Graahl is sealed. The key is held under authority—by favor, theft, or force.",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_chief"
+        },
+        {
+          "type": "item",
+          "id": "item_kx9rm62che3"
+        }
+      ],
+      "requirements": [
+        {
+          "kind": "respectAtLeast",
+          "factionId": "bastion",
+          "value": 3
+        }
+      ],
+      "nextStageTags": [
+        "GetKey"
+      ],
+      "weight": 3,
+      "isMainJourney": true
+    },
+    {
+      "id": "bc_get_key_job",
+      "title": "Contract: break a rival trapline",
+      "stageTag": "GetKey",
+      "text": "A contract is offered: sabotage a Root-Cairn trapline to earn standing.",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_chief"
+        }
+      ],
+      "requirements": [
+        {
+          "kind": "respectAtLeast",
+          "factionId": "bastion",
+          "value": 1
+        }
+      ],
+      "nextStageTags": [
+        "EnterGraahl"
+      ],
+      "weight": 2,
+      "isMainJourney": true
+    },
+    {
+      "id": "bc_get_key_heist",
+      "title": "Heist: key in a chest",
+      "stageTag": "GetKey",
+      "text": "A chest behind the barracks holds the key—unguarded at shift-change.",
+      "providerRefs": [
+        {
+          "type": "item",
+          "id": "item_6xaef40che3"
+        },
+        {
+          "type": "item",
+          "id": "item_hmvu1y6che3"
+        }
+      ],
+      "requirements": [
+        {
+          "kind": "always"
+        }
+      ],
+      "nextStageTags": [
+        "EnterGraahl"
+      ],
+      "weight": 2,
+      "isMainJourney": true
+    },
+    {
+      "id": "bc_enter_graahl",
+      "title": "Inside Graahl: Pipewright lead",
+      "stageTag": "EnterGraahl",
+      "text": "In Graahl’s wet halls you find a mark and a name: a Pipewright who guided him deeper.",
+      "providerRefs": [
+        {
+          "type": "item",
+          "id": "item_3n9nx9xche3"
+        },
+        {
+          "type": "item",
+          "id": "item_me3ep5gche3"
+        }
+      ],
+      "requirements": [
+        {
+          "kind": "always"
+        }
+      ],
+      "nextStageTags": [
+        "PipeLead"
+      ],
+      "weight": 3,
+      "isMainJourney": true
+    },
+    {
+      "id": "bc_pipe_lead",
+      "title": "Pipewright mechanic confesses a route",
+      "stageTag": "PipeLead",
+      "text": "A Pipewright admits your brother traded a relic for passage through the pipe-networks.",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_mech"
+        },
+        {
+          "type": "item",
+          "id": "item_9lzsi0rche3"
+        }
+      ],
+      "requirements": [
+        {
+          "kind": "respectAtLeast",
+          "factionId": "pipe",
+          "value": 1
+        }
+      ],
+      "nextStageTags": [
+        "End"
+      ],
+      "weight": 3,
+      "isMainJourney": true
+    },
+    {
+      "id": "bc_fallback_inn",
+      "title": "Innkeeper points you onward (fallback)",
+      "stageTag": "Any",
+      "text": "The innkeeper won’t name names—only a direction, and a warning about who controls the route today.",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_innkeep"
+        }
+      ],
+      "requirements": [
+        {
+          "kind": "blockedFallbackOnly"
+        }
+      ],
+      "nextStageTags": [
+        "DeeperRoute"
+      ],
+      "weight": 1,
+      "isMainJourney": false
+    },
+    {
+      "id": "bc_lgxrvb8",
+      "title": "Start",
+      "stageTag": "Start",
+      "text": "",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_usrs1dg"
+        }
+      ],
+      "requirements": [],
+      "nextStageTags": [
+        "GraahlLocked"
+      ],
+      "weight": 1,
+      "isMainJourney": true
+    },
+    {
+      "id": "bc_4qjn402",
+      "title": "End",
+      "stageTag": "End",
+      "text": "",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_8irgk3t"
+        }
+      ],
+      "requirements": [],
+      "nextStageTags": [
+        "GraahlLocked"
+      ],
+      "weight": 1,
+      "isMainJourney": true
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn_0yap1b0",
+      "fromId": "reg_surface",
+      "toId": "reg_depths",
+      "gate": {
+        "kind": "open"
+      },
+      "notes": ""
+    },
+    {
+      "id": "conn_4vuy2ug",
+      "fromId": "reg_surface",
+      "toId": "set_gate",
+      "gate": {
+        "kind": "open"
+      },
+      "notes": ""
+    }
+  ]
+}

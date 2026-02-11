@@ -300,6 +300,20 @@ export function defaultContent(): ContentStore {
       weight: 1,
 	  isMainJourney: true,
     },
+	
+	{
+  id: "bc_brother_found",
+  title: "Brother Found",
+  stageTag: "End",
+  text: "You find him at last — not as you expected, but undeniably alive.",
+  providerRefs: [{ type: "npc", id: "npc_astral_seer" }],
+  requirements: [{ kind: "always" }],
+  nextStageTags: [],
+  weight: 1,
+  isMainJourney: true,
+},
+
+	
   ];
 
   return {

@@ -1,14 +1,17 @@
 import React from "react";
 import type { ContentStore } from "../core/types";
+import { migrateToLatest } from "../core/migrate";
 
 export default function DataPage({
   store,
   setStore,
-  resetToDefaults,
+  resetToTemplate,
+  resetToCodeDefaults,
 }: {
   store: ContentStore;
   setStore: React.Dispatch<React.SetStateAction<ContentStore>>;
-  resetToDefaults: () => void;
+  resetToTemplate: () => void;
+  resetToCodeDefaults: () => void;
 }) {
   function addFaction() {
     const f = { id: `fac_${Math.random().toString(36).slice(2, 9)}`, name: "New Faction" };
@@ -30,16 +33,29 @@ export default function DataPage({
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Factions</h3>
         <div className="row">
-          <button className="primary" onClick={addFaction}>+ Add Faction</button>
-          <button onClick={resetToDefaults}>Reset to Defaults</button>
+          <button className="primary" onClick={addFaction}>
+            + Add Faction
+          </button>
+          <button onClick={resetToTemplate}>Reset to Template</button>
+          <button onClick={resetToCodeDefaults}>Reset to Code Defaults</button>
         </div>
 
         <div style={{ height: 12 }} />
 
         {store.factions.map((f) => (
           <div key={f.id} className="row" style={{ marginBottom: 6 }}>
-            <input value={f.name} onChange={(e) => setStore((s) => ({ ...s, factions: s.factions.map((x) => (x.id === f.id ? { ...x, name: e.target.value } : x)) }))} />
-            <button onClick={() => setStore((s) => ({ ...s, factions: s.factions.filter((x) => x.id !== f.id) }))}>Delete</button>
+            <input
+              value={f.name}
+              onChange={(e) =>
+                setStore((s) => ({
+                  ...s,
+                  factions: s.factions.map((x) => (x.id === f.id ? { ...x, name: e.target.value } : x)),
+                }))
+              }
+            />
+            <button onClick={() => setStore((s) => ({ ...s, factions: s.factions.filter((x) => x.id !== f.id) }))}>
+              Delete
+            </button>
           </div>
         ))}
       </div>
@@ -47,7 +63,9 @@ export default function DataPage({
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Export / Import</h3>
 
-        <button className="primary" onClick={exportContent}>Export content.json</button>
+        <button className="primary" onClick={exportContent}>
+          Export content.json
+        </button>
 
         <label style={{ marginTop: 12 }}>Import content.json</label>
         <input
@@ -60,8 +78,9 @@ export default function DataPage({
             reader.onload = () => {
               try {
                 const parsed = JSON.parse(String(reader.result));
-                if (!parsed?.version) throw new Error("bad file");
-                setStore(parsed);
+                const migrated = migrateToLatest(parsed);
+                if (!migrated?.version) throw new Error("bad file");
+                setStore(migrated);
               } catch {
                 alert("Failed to import JSON.");
               }
@@ -69,6 +88,10 @@ export default function DataPage({
             reader.readAsText(file);
           }}
         />
+
+        <div className="muted" style={{ marginTop: 10 }}>
+          Tip: export your current store and save it as <b>public/defaultContent.json</b> to make it the app template.
+        </div>
 
         <h4 style={{ marginTop: 12 }}>Raw JSON</h4>
         <textarea value={JSON.stringify(store, null, 2)} readOnly rows={18} />

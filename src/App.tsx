@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Tab, RunConfig, ContentStore } from "./core/types";
-import { loadStore, saveStore } from "./core/store";
+import { hasStoredStore, loadStore, loadTemplateStore, saveStore } from "./core/store";
 import { defaultContent } from "./core/defaultContent";
 import { buildIndexes } from "./core/indexes";
 
@@ -11,9 +11,35 @@ import LocationsPage from "./pages/LocationsPage";
 import BreadcrumbsPage from "./pages/BreadcrumbsPage";
 import DataPage from "./pages/DataPage";
 
+function makeCfgFromStore(s: ContentStore): RunConfig {
+  const present: Record<string, boolean> = {};
+  const respect: Record<string, number> = {};
+  for (const f of s.factions) {
+    present[f.id] = true;
+    respect[f.id] = 0;
+  }
+  return {
+    seed: 12345,
+    chainLength: 6,
+    startStageTag: "Start",
+    factionsPresent: present,
+    respect,
+  };
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>("generate");
   const [store, setStore] = useState<ContentStore>(() => loadStore());
+
+  // On first boot (no localStorage), pull template JSON from public/.
+  useEffect(() => {
+    if (hasStoredStore()) return;
+    (async () => {
+      const tpl = await loadTemplateStore();
+      setStore(tpl);
+      saveStore(tpl);
+    })();
+  }, []);
 
   // persist store
   useEffect(() => {
@@ -23,22 +49,7 @@ export default function App() {
   // fast lookup tables (rebuilt only when store changes)
   const ix = useMemo(() => buildIndexes(store), [store]);
 
-  const [cfg, setCfg] = useState<RunConfig>(() => {
-    const present: Record<string, boolean> = {};
-    const respect: Record<string, number> = {};
-    const base = loadStore();
-    for (const f of base.factions) {
-      present[f.id] = true;
-      respect[f.id] = 0;
-    }
-    return {
-      seed: 12345,
-      chainLength: 6,
-      startStageTag: "Start",
-      factionsPresent: present,
-      respect,
-    };
-  });
+  const [cfg, setCfg] = useState<RunConfig>(() => makeCfgFromStore(store));
 
   // keep run-config in sync with factions list
   useEffect(() => {
@@ -62,11 +73,20 @@ export default function App() {
     });
   }, [store.factions]);
 
-  function resetToDefaults() {
-    if (!confirm("Reset content to defaults? This overwrites local edits.")) return;
+  async function resetToTemplate() {
+    if (!confirm("Reset content to template (public/defaultContent.json)? This overwrites local edits.")) return;
+    const tpl = await loadTemplateStore();
+    setStore(tpl);
+    saveStore(tpl);
+    setCfg(makeCfgFromStore(tpl));
+  }
+
+  function resetToCodeDefaults() {
+    if (!confirm("Reset content to code defaults? This overwrites local edits.")) return;
     const d = defaultContent();
     setStore(d);
     saveStore(d);
+    setCfg(makeCfgFromStore(d));
   }
 
   return (
@@ -80,7 +100,14 @@ export default function App() {
       {tab === "providers" && <ProvidersPage store={store} setStore={setStore} ix={ix} />}
       {tab === "locations" && <LocationsPage store={store} setStore={setStore} ix={ix} />}
       {tab === "breadcrumbs" && <BreadcrumbsPage store={store} setStore={setStore} ix={ix} />}
-      {tab === "data" && <DataPage store={store} setStore={setStore} resetToDefaults={resetToDefaults} />}
+      {tab === "data" && (
+        <DataPage
+          store={store}
+          setStore={setStore}
+          resetToTemplate={resetToTemplate}
+          resetToCodeDefaults={resetToCodeDefaults}
+        />
+      )}
     </div>
   );
 }
