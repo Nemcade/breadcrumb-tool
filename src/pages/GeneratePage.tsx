@@ -1,6 +1,11 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import type { ContentStore, Indexes, RunConfig, JourneyStep } from "../core/types";
 import { generateJourney } from "../core/generator";
+
+function randomSeed() {
+  // 1..2^31-1-ish
+  return Math.floor(Math.random() * 2147483000) + 1;
+}
 
 export default function GeneratePage({
   store,
@@ -16,16 +21,12 @@ export default function GeneratePage({
 }) {
   const [journey, setJourney] = useState<JourneyStep[]>([]);
   const [issues, setIssues] = useState<string[]>([]);
-  const [randomizeSeedOnGenerate, setRandomizeSeedOnGenerate] = useState<boolean>(true);
+  const [autoSeed, setAutoSeed] = useState(true);
 
   function onGenerate() {
-    const seedToUse = randomizeSeedOnGenerate ? Date.now() : cfg.seed;
-    const cfgToUse: RunConfig = randomizeSeedOnGenerate ? { ...cfg, seed: seedToUse } : cfg;
-
-    // Keep UI config in sync with what we actually generated.
-    if (randomizeSeedOnGenerate) setCfg(cfgToUse);
-
-    const res = generateJourney(store, cfgToUse);
+    const nextCfg = autoSeed ? { ...cfg, seed: randomSeed() } : cfg;
+    if (autoSeed) setCfg(nextCfg);
+    const res = generateJourney(store, nextCfg);
     setJourney(res.steps);
     setIssues(res.issues);
   }
@@ -46,34 +47,29 @@ export default function GeneratePage({
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Run Config</h3>
 
-        <label>Seed</label>
-        <input
-          type="number"
-          value={cfg.seed}
-          onChange={(e) => setCfg((c) => ({ ...c, seed: Number(e.target.value) }))}
-          disabled={randomizeSeedOnGenerate}
-          title={randomizeSeedOnGenerate ? "Disable randomize to edit seed manually" : "Set a fixed seed"}
-        />
-
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={randomizeSeedOnGenerate}
-            onChange={(e) => setRandomizeSeedOnGenerate(e.target.checked)}
-          />
-          Randomize seed on Generate
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <input type="checkbox" checked={autoSeed} onChange={(e) => setAutoSeed(e.target.checked)} />
+          <span>Randomize seed on Generate</span>
         </label>
+
+        <label>Seed</label>
+        <div className="row" style={{ gap: 8 }}>
+          <input
+            type="number"
+            value={cfg.seed}
+            onChange={(e) => setCfg((c) => ({ ...c, seed: Number(e.target.value) }))}
+            style={{ flex: 1 }}
+            disabled={autoSeed}
+          />
+          <button onClick={() => setCfg((c) => ({ ...c, seed: randomSeed() }))} disabled={autoSeed} title="Roll a new seed">
+            🎲
+          </button>
+        </div>
 
         <div style={{ height: 8 }} />
 
         <label>Chain length</label>
-        <input
-          type="number"
-          min={1}
-          max={50}
-          value={cfg.chainLength}
-          onChange={(e) => setCfg((c) => ({ ...c, chainLength: Number(e.target.value) }))}
-        />
+        <input type="number" min={1} max={50} value={cfg.chainLength} onChange={(e) => setCfg((c) => ({ ...c, chainLength: Number(e.target.value) }))} />
 
         <div style={{ height: 8 }} />
 
@@ -144,8 +140,6 @@ export default function GeneratePage({
               const providerStr =
                 s.provider.type === "npc"
                   ? ix.npcsById.get(s.provider.npcId)?.name ?? s.provider.npcId
-                  : s.provider.type === "item"
-                  ? ix.itemsById.get(s.provider.itemId)?.name ?? s.provider.itemId
                   : s.provider.type;
 
               return (
@@ -155,7 +149,8 @@ export default function GeneratePage({
                   </div>
                   <div className="muted">{opt.text}</div>
                   <div className="muted" style={{ marginTop: 4 }}>
-                    <b>Stage:</b> {s.stageTag} · <b>Provider:</b> {providerStr} · <b>Next:</b> {opt.nextStageTags.join(", ") || "—"}
+                    <b>Stage:</b> {s.stageTag} · <b>Provider:</b> {providerStr} · <b>Next:</b>{" "}
+                    {opt.nextStageTags.join(", ") || "—"}
                   </div>
                 </li>
               );

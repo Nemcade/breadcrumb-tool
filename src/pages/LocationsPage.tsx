@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import type { ContentStore, Indexes, LocationId, LocationKind } from "../core/types";
+import { useEffect } from "react";
+import type { ContentStore, Indexes, BreadcrumbId, LocationId, LocationKind, NPCId, ItemId } from "../core/types";
 import LocationLibraryPanel from "../components/LocationLibraryPanel";
 import LocationEditor from "../components/LocationEditor";
 
@@ -11,48 +11,56 @@ export default function LocationsPage({
   store,
   setStore,
   ix,
+  selectedLocationId,
+  setSelectedLocationId,
+  nav,
 }: {
   store: ContentStore;
   setStore: React.Dispatch<React.SetStateAction<ContentStore>>;
   ix: Indexes;
+  selectedLocationId: LocationId | null;
+  setSelectedLocationId: (id: LocationId | null) => void;
+  nav: {
+    openBreadcrumb: (id: BreadcrumbId) => void;
+    openLocation: (id: LocationId) => void;
+    openProvider: (ref: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId }) => void;
+  };
 }) {
-  const [selectedId, setSelectedId] = useState<LocationId | null>(() => store.locations[0]?.id ?? null);
+  const selectedId: LocationId | null = selectedLocationId ?? (store.locations[0]?.id ?? null);
 
   // keep selection valid
-  useMemo(() => {
+  useEffect(() => {
     if (!selectedId) {
-      if (store.locations[0]) setSelectedId(store.locations[0].id);
+      if (store.locations[0]) setSelectedLocationId(store.locations[0].id);
       return;
     }
     if (store.locations.some((l) => l.id === selectedId)) return;
-    setSelectedId(store.locations[0]?.id ?? null);
-  }, [selectedId, store.locations]);
+    setSelectedLocationId(store.locations[0]?.id ?? null);
+  }, [selectedId, store.locations, setSelectedLocationId]);
 
   function addLocation(kind: LocationKind) {
     const id = uid("loc");
     setStore((s) => ({
       ...s,
       locations: [
-  ...s.locations,
-  { id, name: `New ${kind}`, kind, parentId: null, biomeIds: [], defaultBiomeId: null, tags: [] },
-],
-
-
+        ...s.locations,
+        { id, name: `New ${kind}`, kind, parentId: null, biomeIds: [], defaultBiomeId: null, tags: [] },
+      ],
     }));
-    setSelectedId(id);
+    setSelectedLocationId(id);
   }
 
   function deleteSelected() {
     if (!selectedId) return;
 
-    // Note: we don't cascade-delete children here. We just orphan them.
     setStore((s) => ({
       ...s,
       locations: s.locations
         .filter((l) => l.id !== selectedId)
         .map((l) => (l.parentId === selectedId ? { ...l, parentId: null } : l)),
+      connections: (s.connections ?? []).filter((c) => c.fromId !== selectedId && c.toId !== selectedId),
     }));
-    setSelectedId(null);
+    setSelectedLocationId(null);
   }
 
   return (
@@ -76,17 +84,17 @@ export default function LocationsPage({
           </button>
         </div>
 
-        <LocationLibraryPanel store={store} ix={ix} selectedId={selectedId} onSelect={setSelectedId} />
+        <LocationLibraryPanel store={store} ix={ix} selectedId={selectedId} onSelect={setSelectedLocationId} />
       </div>
 
       <LocationEditor
-  store={store}
-  ix={ix}
-  selectedId={selectedId}
-  setStore={setStore}
-  onSelectLocation={setSelectedId}
-/>
-
+        store={store}
+        ix={ix}
+        selectedId={selectedId}
+        setStore={setStore}
+        onSelectLocation={(id) => setSelectedLocationId(id)}
+        nav={nav}
+      />
     </div>
   );
 }

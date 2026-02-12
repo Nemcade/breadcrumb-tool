@@ -5,18 +5,21 @@ function includes(hay: string, needle: string) {
   return hay.toLowerCase().includes(needle.toLowerCase());
 }
 
+function beatsSummary(beats: any[] | undefined) {
+  const n = Array.isArray(beats) ? beats.length : 0;
+  return `Beats:${n}`;
+}
+
 export default function ProviderLibraryPanel({
   store,
   ix,
   selected,
-  onSelectNPC,
-  onSelectItem,
+  onSelect,
 }: {
   store: ContentStore;
   ix: Indexes;
-  selected: { kind: "npc"; id: NPCId } | { kind: "item"; id: ItemId } | null;
-  onSelectNPC: (id: NPCId) => void;
-  onSelectItem: (id: ItemId) => void;
+  selected: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null;
+  onSelect: (p: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null) => void;
 }) {
   const [tab, setTab] = useState<"npcs" | "items" | "locations">("npcs");
   const [q, setQ] = useState("");
@@ -28,7 +31,7 @@ export default function ProviderLibraryPanel({
       const loc = n.locationId ? ix.locationsById.get(n.locationId)?.name ?? "" : "";
       return includes(`${n.name} ${fac} ${loc} ${n.roles.join(" ")} ${n.notes}`, q);
     });
-    rows.sort((a, b) => (a.name).localeCompare(b.name));
+    rows.sort((a, b) => a.name.localeCompare(b.name));
     return rows;
   }, [store.npcs, ix, q]);
 
@@ -38,7 +41,7 @@ export default function ProviderLibraryPanel({
       const loc = it.locationId ? ix.locationsById.get(it.locationId)?.name ?? "" : "";
       return includes(`${it.name} ${it.kind} ${loc} ${it.tags.join(" ")} ${it.notes}`, q);
     });
-    rows.sort((a, b) => (a.name).localeCompare(b.name));
+    rows.sort((a, b) => a.name.localeCompare(b.name));
     return rows;
   }, [store.items, ix, q]);
 
@@ -48,9 +51,8 @@ export default function ProviderLibraryPanel({
       return includes(`${l.name} ${l.kind} ${l.tags.join(" ")}`, q);
     });
 
-    // Group-ish sort: region/biome/settlement/landmark then name
     const order: Record<string, number> = { region: 0, biome: 1, settlement: 2, landmark: 3 };
-    rows.sort((a, b) => (order[a.kind] - order[b.kind]) || a.name.localeCompare(b.name));
+    rows.sort((a, b) => order[a.kind] - order[b.kind] || a.name.localeCompare(b.name));
     return rows;
   }, [store.locations, q]);
 
@@ -87,14 +89,14 @@ export default function ProviderLibraryPanel({
           {npcs.map((n) => (
             <button
               key={n.id}
-              className={selected?.kind === "npc" && selected.id === n.id ? "primary" : ""}
-              onClick={() => onSelectNPC(n.id)}
+              className={selected?.type === "npc" && selected.id === n.id ? "primary" : ""}
+              onClick={() => onSelect({ type: "npc", id: n.id })}
               style={{ width: "100%", textAlign: "left", marginBottom: 6 }}
               title="Select to edit"
             >
               <div style={{ fontWeight: 700 }}>{n.name}</div>
               <div className="muted" style={{ fontSize: 12 }}>
-                {factionLabel(n.factionId)} · T{n.tier} · {locLabel(n.locationId)}
+                {factionLabel(n.factionId)} · T{n.tier} · {locLabel(n.locationId)} · {beatsSummary((n as any).brotherBeats ?? (n as any).brotherLeads)}
               </div>
             </button>
           ))}
@@ -106,14 +108,14 @@ export default function ProviderLibraryPanel({
           {items.map((it) => (
             <button
               key={it.id}
-              className={selected?.kind === "item" && selected.id === it.id ? "primary" : ""}
-              onClick={() => onSelectItem(it.id)}
+              className={selected?.type === "item" && selected.id === it.id ? "primary" : ""}
+              onClick={() => onSelect({ type: "item", id: it.id })}
               style={{ width: "100%", textAlign: "left", marginBottom: 6 }}
               title="Select to edit"
             >
               <div style={{ fontWeight: 700 }}>{it.name}</div>
               <div className="muted" style={{ fontSize: 12 }}>
-                Item({it.kind}) · {locLabel(it.locationId)}
+                Item({it.kind}) · {locLabel(it.locationId)} · {beatsSummary((it as any).brotherBeats ?? (it as any).brotherLeads)}
               </div>
             </button>
           ))}

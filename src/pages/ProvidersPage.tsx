@@ -1,40 +1,47 @@
-import { useMemo, useState } from "react";
-import type { ContentStore, Indexes, NPCId, ItemId } from "../core/types";
+import { useEffect, useMemo } from "react";
+import type { ContentStore, Indexes, BreadcrumbId, LocationId, NPCId, ItemId } from "../core/types";
 import ProviderLibraryPanel from "../components/ProviderLibraryPanel";
 import ProviderEditor from "../components/ProviderEditor";
-
-function uid(prefix = "id") {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
-}
 
 export default function ProvidersPage({
   store,
   setStore,
   ix,
+  selectedProvider,
+  setSelectedProvider,
+  nav,
 }: {
   store: ContentStore;
   setStore: React.Dispatch<React.SetStateAction<ContentStore>>;
   ix: Indexes;
+  selectedProvider: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null;
+  setSelectedProvider: (p: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null) => void;
+  nav: {
+    openBreadcrumb: (id: BreadcrumbId) => void;
+    openLocation: (id: LocationId) => void;
+    openProvider: (ref: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId }) => void;
+  };
 }) {
-  const [selected, setSelected] = useState<{ kind: "npc"; id: NPCId } | { kind: "item"; id: ItemId } | null>(() => {
-    if (store.npcs[0]) return { kind: "npc", id: store.npcs[0].id };
-    if (store.items[0]) return { kind: "item", id: store.items[0].id };
-    return null;
-  });
+  const selected = selectedProvider ?? (store.npcs[0] ? ({ type: "npc", id: store.npcs[0].id } as const) : null);
 
   // keep selection valid
-  useMemo(() => {
+  useEffect(() => {
     if (!selected) return;
-    if (selected.kind === "npc" && store.npcs.some((n) => n.id === selected.id)) return;
-    if (selected.kind === "item" && store.items.some((it) => it.id === selected.id)) return;
 
-    if (store.npcs[0]) setSelected({ kind: "npc", id: store.npcs[0].id });
-    else if (store.items[0]) setSelected({ kind: "item", id: store.items[0].id });
-    else setSelected(null);
-  }, [selected, store.npcs, store.items]);
+    const ok =
+      selected.type === "npc"
+        ? store.npcs.some((n) => n.id === selected.id)
+        : store.items.some((it) => it.id === selected.id);
+
+    if (ok) return;
+
+    if (store.npcs[0]) setSelectedProvider({ type: "npc", id: store.npcs[0].id });
+    else if (store.items[0]) setSelectedProvider({ type: "item", id: store.items[0].id });
+    else setSelectedProvider(null);
+  }, [selected, store.npcs, store.items, setSelectedProvider]);
 
   function addNPC() {
-    const id = uid("npc");
+    const id = `npc_${Math.random().toString(36).slice(2, 9)}`;
     setStore((s) => ({
       ...s,
       npcs: [
@@ -47,14 +54,15 @@ export default function ProvidersPage({
           tier: 0,
           locationId: null,
           notes: "",
+          brotherBeats: [],
         },
       ],
     }));
-    setSelected({ kind: "npc", id });
+    setSelectedProvider({ type: "npc", id });
   }
 
   function addItem() {
-    const id = uid("item");
+    const id = `item_${Math.random().toString(36).slice(2, 9)}`;
     setStore((s) => ({
       ...s,
       items: [
@@ -66,48 +74,65 @@ export default function ProvidersPage({
           locationId: null,
           notes: "",
           tags: [],
+          brotherBeats: [],
         },
       ],
     }));
-    setSelected({ kind: "item", id });
+    setSelectedProvider({ type: "item", id });
   }
 
   function deleteSelected() {
     if (!selected) return;
+    if (!confirm("Delete selected provider?")) return;
 
-    if (selected.kind === "npc") {
-      setStore((s) => ({ ...s, npcs: s.npcs.filter((n) => n.id !== selected.id) }));
-    } else {
-      setStore((s) => ({ ...s, items: s.items.filter((it) => it.id !== selected.id) }));
-    }
-    setSelected(null);
+    setStore((s) => {
+      const next = { ...s };
+
+      if (selected.type === "npc") next.npcs = next.npcs.filter((n) => n.id !== selected.id);
+      else next.items = next.items.filter((it) => it.id !== selected.id);
+
+      // Also remove from breadcrumbs provider pools
+      next.breadcrumbs = next.breadcrumbs.map((b) => ({
+        ...b,
+        providerRefs: b.providerRefs.filter((p) => !(p.type === selected.type && p.id === selected.id)),
+      }));
+
+      return next;
+    });
+
+    setSelectedProvider(null);
   }
+
+  const counts = useMemo(() => ({ npcs: store.npcs.length, items: store.items.length }), [store.npcs.length, store.items.length]);
 
   return (
     <div className="grid2" style={{ gap: 12, alignItems: "start" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="primary" onClick={addNPC} style={{ flex: 1 }}>
-            + Add NPC
+        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button className="primary" onClick={addNPC}>
+            + NPC
           </button>
-          <button className="primary" onClick={addItem} style={{ flex: 1 }}>
-            + Add Item
+          <button className="primary" onClick={addItem}>
+            + Item
           </button>
           <button onClick={deleteSelected} disabled={!selected}>
             Delete
           </button>
+          <span className="muted" style={{ marginLeft: 8 }}>
+            NPCs: {counts.npcs} · Items: {counts.items}
+          </span>
         </div>
 
-        <ProviderLibraryPanel
-          store={store}
-          ix={ix}
-          selected={selected}
-          onSelectNPC={(id) => setSelected({ kind: "npc", id })}
-          onSelectItem={(id) => setSelected({ kind: "item", id })}
-        />
+        <ProviderLibraryPanel store={store} ix={ix} selected={selected} onSelect={setSelectedProvider} />
       </div>
 
-      <ProviderEditor store={store} ix={ix} selected={selected} setStore={setStore} />
+      <ProviderEditor
+        store={store}
+        ix={ix}
+        selected={selected}
+        setStore={setStore}
+        nav={nav}
+      />
     </div>
   );
 }

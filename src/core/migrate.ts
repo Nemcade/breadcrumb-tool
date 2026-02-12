@@ -1,102 +1,118 @@
-import type { ContentStore, Location, Connection } from "../core/types";
+import type { ContentStore } from "../core/types";
 
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36).slice(2, 6)}`;
 }
 
-/**
- * Latest schema version in the content store.
- * v1: original (providers specs in breadcrumbs)
- * v2: adds items[] and providerRefs[] on breadcrumbs
- * v3: locations gain biomeIds + defaultBiomeId, and store gains connections[]
- */
-const LATEST_VERSION = 3;
+export function migrateToLatest(raw: any): ContentStore {
+  if (!raw) throw new Error("Invalid store");
 
-function normalizeLocations(rawLocations: any[]): Location[] {
-  const locs = Array.isArray(rawLocations) ? rawLocations : [];
-  return locs.map((l: any) => ({
+  const v = Number(raw.version ?? 1);
+
+  // If already v3+, just ensure missing arrays exist
+  if (v >= 3) {
+    const s = raw as ContentStore;
+
+    // defensive fills
+    s.locations = (s.locations ?? []).map((l: any) => ({
+      biomeIds: [],
+      defaultBiomeId: null,
+      tags: [],
+      ...l,
+    }));
+
+    s.npcs = (s.npcs ?? []).map((n: any) => ({
+      roles: [],
+      notes: "",
+      brotherBeats: [],
+      ...n,
+    }));
+
+    s.items = (s.items ?? []).map((it: any) => ({
+      notes: "",
+      tags: [],
+      brotherBeats: [],
+      ...it,
+    }));
+
+    s.breadcrumbs = (s.breadcrumbs ?? []).map((b: any) => ({
+      text: "",
+      requirements: [],
+      nextStageTags: [],
+      weight: 1,
+      isMainJourney: true,
+      ...b,
+    }));
+
+    s.connections = s.connections ?? [];
+    s.version = Math.max(3, s.version ?? 3);
+
+    return s;
+  }
+
+  // v1/v2 → v3 (normalize everything)
+  const factions = raw.factions ?? [];
+  const locations = (raw.locations ?? []).map((l: any) => ({
     id: l.id,
     name: l.name ?? "Location",
     kind: l.kind ?? "landmark",
     parentId: l.parentId ?? null,
-
-    // v3 additions
     biomeIds: Array.isArray(l.biomeIds) ? l.biomeIds : [],
     defaultBiomeId: l.defaultBiomeId ?? null,
-
     tags: Array.isArray(l.tags) ? l.tags : [],
   }));
-}
 
-function normalizeConnections(rawConnections: any): Connection[] {
-  return Array.isArray(rawConnections) ? rawConnections : [];
-}
+  const npcs = (raw.npcs ?? []).map((n: any) => ({
+    id: n.id ?? uid("npc"),
+    name: n.name ?? "NPC",
+    factionId: n.factionId ?? null,
+    roles: Array.isArray(n.roles) ? n.roles : [],
+    tier: typeof n.tier === "number" ? n.tier : 0,
+    locationId: n.locationId ?? null,
+    notes: n.notes ?? "",
+    brotherBeats: Array.isArray(n.brotherBeats) ? n.brotherBeats : [],
+  }));
 
-function migrateV2toV3(v2: any): ContentStore {
-  return {
-    version: 3,
-    factions: Array.isArray(v2.factions) ? v2.factions : [],
-    locations: normalizeLocations(v2.locations),
-    npcs: Array.isArray(v2.npcs) ? v2.npcs : [],
-    items: Array.isArray(v2.items) ? v2.items : [],
-    breadcrumbs: Array.isArray(v2.breadcrumbs) ? v2.breadcrumbs : [],
-    connections: normalizeConnections(v2.connections),
-  };
-}
+  const items = (raw.items ?? []).map((it: any) => ({
+    id: it.id ?? uid("item"),
+    name: it.name ?? "Item",
+    kind: it.kind ?? "other",
+    locationId: it.locationId ?? null,
+    notes: it.notes ?? "",
+    tags: Array.isArray(it.tags) ? it.tags : [],
+    brotherBeats: Array.isArray(it.brotherBeats) ? it.brotherBeats : [],
+  }));
 
-/**
- * Migrates v1 -> v2:
- * - adds items:[]
- * - converts breadcrumb.providers(specs) -> breadcrumb.providerRefs(concrete)
- * Notes:
- * - NPC-role specs are best-effort (picks up to 3 matching NPCs)
- * - chest/note specs become placeholder items with no location (you can relocate them later)
- */
-function migrateV1toV2(raw: any): any {
-  const items: any[] = [];
-  const npcs: any[] = Array.isArray(raw.npcs) ? raw.npcs : [];
-
+  // If v1 had breadcrumb.providers, best-effort convert → providerRefs
   const breadcrumbs = (raw.breadcrumbs ?? []).map((b: any) => {
-    const providerRefs: any[] = [];
+    const providerRefs: any[] = Array.isArray(b.providerRefs) ? b.providerRefs : [];
 
-    // v1 had b.providers: ProviderSpec[]
-    const specs: any[] = Array.isArray(b.providers) ? b.providers : [];
-
-    for (const p of specs) {
-      if (p?.type === "npc") {
-        const rolesAny: string[] = Array.isArray(p.rolesAny) ? p.rolesAny : [];
-        const minTier = typeof p.minTier === "number" ? p.minTier : 0;
-
-        const matches = npcs
-          .filter((n) => {
-            if (typeof n?.tier === "number" && n.tier < minTier) return false;
-            if (!rolesAny.length) return true;
-            const r = Array.isArray(n.roles) ? n.roles : [];
-            return rolesAny.some((x) => r.includes(x));
-          })
-          .slice(0, 3);
-
-        for (const n of matches) providerRefs.push({ type: "npc", id: n.id });
+    if (!providerRefs.length && Array.isArray(b.providers)) {
+      // legacy v1 conversion
+      for (const p of b.providers) {
+        if (p?.type === "npc") {
+          // keep it minimal; legacy role specs are no longer primary
+          const matches = npcs.slice(0, 2);
+          for (const n of matches) providerRefs.push({ type: "npc", id: n.id });
+        }
+        if (p?.type === "chest" || p?.type === "note") {
+          const id = uid("item");
+          items.push({
+            id,
+            name: p.type === "chest" ? "Chest (migrated)" : "Note (migrated)",
+            kind: p.type,
+            locationId: null,
+            notes: "",
+            tags: ["migrated"],
+            brotherBeats: [],
+          });
+          providerRefs.push({ type: "item", id });
+        }
       }
-
-      if (p?.type === "chest" || p?.type === "note") {
-        const id = uid("item");
-        items.push({
-          id,
-          name: p.type === "chest" ? "Chest (migrated)" : "Note (migrated)",
-          kind: p.type,
-          locationId: null,
-          notes: "",
-          tags: ["migrated"],
-        });
-        providerRefs.push({ type: "item", id });
-      }
-
-      // tavernkeeper: ignored (global fallback in newer model)
     }
 
     return {
-      id: b.id,
+      id: b.id ?? uid("bc"),
       title: b.title ?? "Breadcrumb",
       stageTag: b.stageTag ?? "Any",
       text: b.text ?? "",
@@ -104,34 +120,21 @@ function migrateV1toV2(raw: any): any {
       requirements: Array.isArray(b.requirements) ? b.requirements : [],
       nextStageTags: Array.isArray(b.nextStageTags) ? b.nextStageTags : [],
       weight: typeof b.weight === "number" ? b.weight : 1,
+      isMainJourney: typeof b.isMainJourney === "boolean" ? b.isMainJourney : true,
     };
   });
 
-  return {
-    version: 2,
-    factions: raw.factions ?? [],
-    locations: raw.locations ?? [],
-    npcs: raw.npcs ?? [],
+  const connections = raw.connections ?? [];
+
+  const out: ContentStore = {
+    version: 3,
+    factions,
+    locations,
+    npcs,
     items,
     breadcrumbs,
+    connections,
   };
-}
 
-export function migrateToLatest(raw: any): ContentStore {
-  if (!raw?.version) throw new Error("Invalid store");
-
-  if (raw.version >= LATEST_VERSION) return raw as ContentStore;
-
-  // v1 -> v2 -> v3
-  if (raw.version === 1) {
-    const v2 = migrateV1toV2(raw);
-    return migrateV2toV3(v2);
-  }
-
-  // v2 -> v3
-  if (raw.version === 2) {
-    return migrateV2toV3(raw);
-  }
-
-  throw new Error(`Unsupported version: ${raw.version}`);
+  return out;
 }

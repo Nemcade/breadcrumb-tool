@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Tab, RunConfig, ContentStore } from "./core/types";
-import { hasStoredStore, loadStore, loadTemplateStore, saveStore } from "./core/store";
+import type { BreadcrumbId, ContentStore, ItemId, LocationId, NPCId, RunConfig, Tab } from "./core/types";
+import { loadStore, saveStore } from "./core/store";
 import { defaultContent } from "./core/defaultContent";
 import { buildIndexes } from "./core/indexes";
 
@@ -11,35 +11,14 @@ import LocationsPage from "./pages/LocationsPage";
 import BreadcrumbsPage from "./pages/BreadcrumbsPage";
 import DataPage from "./pages/DataPage";
 
-function makeCfgFromStore(s: ContentStore): RunConfig {
-  const present: Record<string, boolean> = {};
-  const respect: Record<string, number> = {};
-  for (const f of s.factions) {
-    present[f.id] = true;
-    respect[f.id] = 0;
-  }
-  return {
-    seed: 12345,
-    chainLength: 6,
-    startStageTag: "Start",
-    factionsPresent: present,
-    respect,
-  };
-}
-
 export default function App() {
   const [tab, setTab] = useState<Tab>("generate");
   const [store, setStore] = useState<ContentStore>(() => loadStore());
 
-  // On first boot (no localStorage), pull template JSON from public/.
-  useEffect(() => {
-    if (hasStoredStore()) return;
-    (async () => {
-      const tpl = await loadTemplateStore();
-      setStore(tpl);
-      saveStore(tpl);
-    })();
-  }, []);
+  // Selection state (lets editors deep-link between tabs)
+  //const [selectedBreadcrumbId, setSelectedBreadcrumbId] = useState<BreadcrumbId | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<LocationId | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<{ type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null>(null);
 
   // persist store
   useEffect(() => {
@@ -49,7 +28,22 @@ export default function App() {
   // fast lookup tables (rebuilt only when store changes)
   const ix = useMemo(() => buildIndexes(store), [store]);
 
-  const [cfg, setCfg] = useState<RunConfig>(() => makeCfgFromStore(store));
+  const [cfg, setCfg] = useState<RunConfig>(() => {
+    const present: Record<string, boolean> = {};
+    const respect: Record<string, number> = {};
+    const base = loadStore();
+    for (const f of base.factions) {
+      present[f.id] = true;
+      respect[f.id] = 0;
+    }
+    return {
+      seed: 12345,
+      chainLength: 6,
+      startStageTag: "Start",
+      factionsPresent: present,
+      respect,
+    };
+  });
 
   // keep run-config in sync with factions list
   useEffect(() => {
@@ -73,21 +67,34 @@ export default function App() {
     });
   }, [store.factions]);
 
-  async function resetToTemplate() {
-    if (!confirm("Reset content to template (public/defaultContent.json)? This overwrites local edits.")) return;
-    const tpl = await loadTemplateStore();
-    setStore(tpl);
-    saveStore(tpl);
-    setCfg(makeCfgFromStore(tpl));
-  }
-
-  function resetToCodeDefaults() {
-    if (!confirm("Reset content to code defaults? This overwrites local edits.")) return;
+  function resetToDefaults() {
+    if (!confirm('Reset content to defaults? This overwrites local edits.')) return;
     const d = defaultContent();
     setStore(d);
     saveStore(d);
-    setCfg(makeCfgFromStore(d));
   }
+  
+  const resetToCodeDefaults = resetToDefaults;
+const resetToTemplate = resetToDefaults; // or your real template reset, if you have one
+
+
+  const nav = useMemo(
+    () => ({
+      openBreadcrumb: (_id: BreadcrumbId) => {
+  setTab("breadcrumbs");
+},
+
+      openLocation: (id: LocationId) => {
+        setSelectedLocationId(id);
+        setTab("locations");
+      },
+      openProvider: (ref: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId }) => {
+        setSelectedProvider(ref);
+        setTab("providers");
+      },
+    }),
+    []
+  );
 
   return (
     <div className="app">
@@ -97,17 +104,51 @@ export default function App() {
       </header>
 
       {tab === "generate" && <GeneratePage store={store} setStore={setStore} ix={ix} cfg={cfg} setCfg={setCfg} />}
-      {tab === "providers" && <ProvidersPage store={store} setStore={setStore} ix={ix} />}
-      {tab === "locations" && <LocationsPage store={store} setStore={setStore} ix={ix} />}
-      {tab === "breadcrumbs" && <BreadcrumbsPage store={store} setStore={setStore} ix={ix} />}
-      {tab === "data" && (
-        <DataPage
+
+      {tab === "providers" && (
+        <ProvidersPage
           store={store}
           setStore={setStore}
-          resetToTemplate={resetToTemplate}
-          resetToCodeDefaults={resetToCodeDefaults}
+          ix={ix}
+          selectedProvider={selectedProvider}
+          setSelectedProvider={setSelectedProvider}
+          nav={nav}
         />
       )}
+
+      {tab === "locations" && (
+        <LocationsPage
+          store={store}
+          setStore={setStore}
+          ix={ix}
+          selectedLocationId={selectedLocationId}
+          setSelectedLocationId={setSelectedLocationId}
+          nav={nav}
+        />
+      )}
+	  
+	  {tab === "breadcrumbs" && (
+  <BreadcrumbsPage
+    store={store}
+    setStore={setStore}
+    ix={ix}
+  />
+)}
+
+
+
+      {tab === "data" && (
+  <DataPage
+    store={store}
+    setStore={setStore}
+    resetToTemplate={resetToTemplate}
+    resetToCodeDefaults={resetToCodeDefaults}
+  />
+)}
+
+
+
+      
     </div>
   );
 }

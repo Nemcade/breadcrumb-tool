@@ -1,15 +1,18 @@
-import type { ContentStore, Faction, Location, NPC, BreadcrumbOption, ItemProvider } from "../core/types";
+import type { ContentStore, Connection, Faction, Location, NPC, BreadcrumbOption, ItemProvider, ProviderBeat } from "../core/types";
+
+
+function beat(id: string, kind: ProviderBeat["kind"], mood: ProviderBeat["mood"], text: string, weight = 1, respectDelta = 0): ProviderBeat {
+  return { id, kind, mood, text, weight, respectDelta };
+}
 
 export function defaultContent(): ContentStore {
-  // --- Factions ---
   const bastion: Faction = { id: "bastion", name: "Bastion Court" };
   const root: Faction = { id: "root", name: "Root-Cairn Clans" };
   const pipe: Faction = { id: "pipe", name: "Pipewright Union" };
   const umbral: Faction = { id: "umbral", name: "Umbral Choir" };
   const astral: Faction = { id: "astral", name: "Astral Hoard" };
 
-  // --- Locations (simple hierarchy) ---
-  const loc: Location[] = [
+  const locations: Location[] = [
     // Regions
     { id: "reg_surface", name: "Surface", kind: "region", parentId: null, biomeIds: [], defaultBiomeId: null, tags: ["surface"] },
     { id: "reg_mid", name: "Mid-Depth", kind: "region", parentId: null, biomeIds: [], defaultBiomeId: null, tags: ["mid"] },
@@ -20,309 +23,263 @@ export function defaultContent(): ContentStore {
     { id: "set_pipeyard", name: "Pipeyard", kind: "settlement", parentId: "reg_mid", biomeIds: [], defaultBiomeId: null, tags: ["hub", "pipe"] },
     { id: "set_rootden", name: "Rootden", kind: "settlement", parentId: "reg_mid", biomeIds: [], defaultBiomeId: null, tags: ["hub", "root"] },
 
-    // Landmarks inside Gate Settlement
+    // Landmarks
     { id: "lm_tavern", name: "The Bent Lantern (Tavern)", kind: "landmark", parentId: "set_gate", biomeIds: [], defaultBiomeId: null, tags: ["tavern"] },
     { id: "lm_barracks", name: "Bastion Barracks", kind: "landmark", parentId: "set_gate", biomeIds: [], defaultBiomeId: null, tags: ["bastion", "guard"] },
     { id: "lm_graahl_gate", name: "Graahl Seal-Door", kind: "landmark", parentId: "set_gate", biomeIds: [], defaultBiomeId: null, tags: ["gate", "locked"] },
 
-    // Landmarks elsewhere
     { id: "lm_pipe_valves", name: "Valve-Rack Gallery", kind: "landmark", parentId: "set_pipeyard", biomeIds: [], defaultBiomeId: null, tags: ["pipe", "machinery"] },
     { id: "lm_root_trapline", name: "Trapline Hollows", kind: "landmark", parentId: "set_rootden", biomeIds: [], defaultBiomeId: null, tags: ["root", "traps"] },
     { id: "lm_crypt_choir", name: "Choir Crypt", kind: "landmark", parentId: "reg_depths", biomeIds: [], defaultBiomeId: null, tags: ["umbral", "ritual"] },
     { id: "lm_astral_niche", name: "Astral Niche", kind: "landmark", parentId: "reg_depths", biomeIds: [], defaultBiomeId: null, tags: ["astral", "hidden"] },
   ];
 
-  // --- NPCs ---
   const npcs: NPC[] = [
-    // Global fallback NPC (tavernkeeper)
     {
       id: "npc_innkeep",
-      name: "Innkeep Salla",
+      name: "Bent Lantern Keeper",
       factionId: null,
-      roles: ["tavernkeeper", "rumormonger"],
+      roles: ["tavernkeeper"],
       tier: 0,
       locationId: "lm_tavern",
-      notes: "Knows what people whisper. Works as global fallback provider.",
+      notes: "Fallback tavernkeeper.",
+      brotherBeats: [
+        beat(
+          "bb_innkeep_witness",
+          "witness",
+          "neutral",
+          "I saw him — loud laugh, fast hands. He kept saying {nextProvider} might know more, down in {nextLocation}.",
+          2,
+          0
+        ),
+      ],
     },
-
-    // Bastion
     {
-      id: "npc_chief_bastion",
-      name: "Captain Vell",
-      factionId: bastion.id,
-      roles: ["chieftain", "officer"],
-      tier: 1,
+      id: "npc_bastion_captain",
+      name: "Captain Brann",
+      factionId: "bastion",
+      roles: ["guard", "captain"],
+      tier: 2,
       locationId: "lm_barracks",
-      notes: "Keeps discipline. Will trade access for proof of usefulness.",
+      notes: "A hard gatekeeper with rules.",
+      brotherBeats: [
+        beat(
+          "bb_brann_fight",
+          "fight",
+          "hostile",
+          "Your brother tested my patrol in the alley and vanished laughing. If you want the same answers, find {nextProvider} near {nextLocation}.",
+          2,
+          -1
+        ),
+        beat(
+          "bb_brann_witness",
+          "witness",
+          "neutral",
+          "He asked after the seal-door. Said the name ‘{nextProvider}’. Then he headed for {nextLocation}.",
+          1,
+          0
+        ),
+      ],
     },
-    {
-      id: "npc_bastion_scribe",
-      name: "Scribe Orin",
-      factionId: bastion.id,
-      roles: ["scribe", "clerk"],
-      tier: 0,
-      locationId: "set_gate",
-      notes: "Knows records and names. Talks more if you’re not a threat.",
-    },
-
-    // Root
-    {
-      id: "npc_root_scout",
-      name: "Rusk of the Roots",
-      factionId: root.id,
-      roles: ["scout", "trapper"],
-      tier: 1,
-      locationId: "lm_root_trapline",
-      notes: "Reads spoor like scripture. Hates Bastion patrols.",
-    },
-
-    // Pipewright
     {
       id: "npc_pipe_mechanic",
-      name: "Mivvi Brass-Ear",
-      factionId: pipe.id,
-      roles: ["mechanic", "merchant"],
+      name: "Vessa Valvehand",
+      factionId: "pipe",
+      roles: ["mechanic", "tinkerer"],
       tier: 1,
-      locationId: "set_pipeyard",
-      notes: "Sells passage and fixes what others fear to touch.",
+      locationId: "lm_pipe_valves",
+      notes: "Keeps the pipes singing.",
+      brotherBeats: [
+        beat(
+          "bb_vessa_trade",
+          "trade",
+          "friendly",
+          "He traded me a coil of old wire for directions. Said {nextProvider} in {nextLocation} was ‘worth the trouble’.",
+          2,
+          +1
+        ),
+      ],
     },
-
-    // Umbral
+    {
+      id: "npc_root_hunter",
+      name: "Celia Trapbriar",
+      factionId: "root",
+      roles: ["hunter"],
+      tier: 1,
+      locationId: "lm_root_trapline",
+      notes: "Knows beasts and borders.",
+      brotherBeats: [
+        beat(
+          "bb_celia_witness",
+          "witness",
+          "neutral",
+          "He came through my trapline like he owned it. If you’re chasing him, start with {nextProvider} at {nextLocation}.",
+          2,
+          0
+        ),
+        beat(
+          "bb_celia_party",
+          "party",
+          "friendly",
+          "We drank sap-wine and he told stories. In the morning he left toward {nextLocation} — looking for {nextProvider}.",
+          1,
+          +1
+        ),
+      ],
+    },
     {
       id: "npc_umbral_acolyte",
-      name: "Hush-Acolyte Ilen",
-      factionId: umbral.id,
-      roles: ["acolyte", "cultist"],
+      name: "Choir Acolyte",
+      factionId: "umbral",
+      roles: ["cultist"],
       tier: 2,
       locationId: "lm_crypt_choir",
-      notes: "Deals in vows and soft threats. Doesn’t bargain cheaply.",
+      notes: "Whispers in the dark.",
+      brotherBeats: [
+        beat(
+          "bb_umbral_letter",
+          "letter",
+          "mysterious",
+          "He left a folded scrap. Only one name on it: {nextProvider}. Find them in {nextLocation}.",
+          2,
+          0
+        ),
+      ],
     },
-
-    // Astral
     {
-      id: "npc_astral_seer",
-      name: "Seer Koria",
-      factionId: astral.id,
-      roles: ["seer", "sage"],
-      tier: 2,
+      id: "npc_astral_sage",
+      name: "Astral Sage",
+      factionId: "astral",
+      roles: ["sage"],
+      tier: 3,
       locationId: "lm_astral_niche",
-      notes: "Speaks in short, accurate statements. Hoards forgotten names.",
+      notes: "Hoarder of strange knowing.",
+      brotherBeats: [
+        beat(
+          "bb_astral_witness",
+          "witness",
+          "mysterious",
+          "He listened more than he spoke. Before leaving, he asked for {nextProvider} and vanished toward {nextLocation}.",
+          2,
+          0
+        ),
+      ],
     },
   ];
 
-  // --- Items (place-anchored providers: notes, chests, etc.) ---
   const items: ItemProvider[] = [
     {
-      id: "item_barracks_chest_key",
-      name: "Barracks Chest (Key stash)",
-      kind: "chest",
-      locationId: "lm_barracks",
-      notes: "A battered lockbox used during shift-changes. Good heist target.",
-      tags: ["key", "bastion"],
-    },
-    {
-      id: "item_note_graahl_scratch",
-      name: "Damp Note: 'Graahl mark'",
+      id: "item_graahl_note",
+      name: "Smeared Note (Graahl)",
       kind: "note",
       locationId: "lm_graahl_gate",
-      notes: "A scrap naming a Pipewright who escorted someone below.",
+      notes: "A note jammed near the seal-door.",
       tags: ["graahl", "clue"],
-    },
-    {
-      id: "item_valve_ledger",
-      name: "Valve Ledger Page",
-      kind: "letter",
-      locationId: "lm_pipe_valves",
-      notes: "A torn ledger page listing valve sequences and a witness name.",
-      tags: ["pipe", "clue"],
-    },
-    {
-      id: "item_root_totem_shard",
-      name: "Totem Shard",
-      kind: "relic",
-      locationId: "lm_root_trapline",
-      notes: "A broken charm. Someone used it to bargain for safe passage.",
-      tags: ["root", "clue"],
-    },
-    {
-      id: "item_crypt_prayer_strip",
-      name: "Prayer Strip (stained)",
-      kind: "note",
-      locationId: "lm_crypt_choir",
-      notes: "A ritual strip with a name repeated. The ink feels wrong.",
-      tags: ["umbral", "clue"],
+      brotherBeats: [
+        beat(
+          "bb_note_witness",
+          "letter",
+          "neutral",
+          "The note mentions {nextProvider} and a meeting in {nextLocation}.",
+          1,
+          0
+        ),
+      ],
     },
   ];
 
-  // --- Breadcrumb options (beats) ---
   const breadcrumbs: BreadcrumbOption[] = [
-    // START
     {
-      id: "bc_start_rumor_graahl",
-      title: "Rumor: he argued about Graahl",
+      id: "bc_start",
+      title: "Starting Rumor",
       stageTag: "Start",
-      text: "At the Gate Settlement, someone remembers your brother arguing about a sealed door called Graahl.",
+      text: "",
+      providerRefs: [{ type: "npc", id: "npc_innkeep" }],
+      requirements: [],
+      nextStageTags: ["GraahlGate"],
+      weight: 3,
+      isMainJourney: true,
+    },
+    {
+      id: "bc_graahl_gate",
+      title: "Graahl Seal-Door",
+      stageTag: "GraahlGate",
+      text: "",
       providerRefs: [
-        { type: "npc", id: "npc_innkeep" },
-        { type: "npc", id: "npc_bastion_scribe" },
+        { type: "npc", id: "npc_bastion_captain" },
+        { type: "item", id: "item_graahl_note" },
       ],
       requirements: [],
-      nextStageTags: ["GraahlLocked"],
+      nextStageTags: ["PipeLead", "RootLead"],
       weight: 3,
-	  isMainJourney: true,
+      isMainJourney: true,
     },
-
-    // GRAAHL LOCKED
     {
-      id: "bc_graahl_locked_key_where",
-      title: "Graahl is locked: where the key is kept",
-      stageTag: "GraahlLocked",
-      text: "Graahl is sealed. Either earn permission, steal the key, or take it from someone who carries it.",
-      providerRefs: [
-        { type: "npc", id: "npc_chief_bastion" },
-        { type: "item", id: "item_barracks_chest_key" },
-      ],
-      requirements: [],
-      nextStageTags: ["GetKey"],
-      weight: 3,
-	  isMainJourney: true,
-    },
-
-    // GET KEY (respect route)
-    {
-      id: "bc_get_key_permission",
-      title: "Permission route: prove yourself to Bastion",
-      stageTag: "GetKey",
-      text: "Captain Vell will give you access if you do something that harms a rival’s hold nearby.",
-      providerRefs: [{ type: "npc", id: "npc_chief_bastion" }],
-      requirements: [{ kind: "respectAtLeast", factionId: "bastion", value: 1 }],
-      nextStageTags: ["EnterGraahl"],
-      weight: 2,
-	  isMainJourney: true,
-    },
-
-    // GET KEY (heist route)
-    {
-      id: "bc_get_key_heist",
-      title: "Heist route: the chest can be cracked",
-      stageTag: "GetKey",
-      text: "A lockbox in the barracks is the weak point. If you can get it open, you don’t need permission.",
-      providerRefs: [{ type: "item", id: "item_barracks_chest_key" }],
-      requirements: [{ kind: "always" }],
-      nextStageTags: ["EnterGraahl"],
-      weight: 2,
-	  isMainJourney: true,
-    },
-
-    // ENTER GRAAHL
-    {
-      id: "bc_enter_graahl_note",
-      title: "Inside Graahl: a mark and a name",
-      stageTag: "EnterGraahl",
-      text: "Beyond the seal, a damp note links your brother to a Pipewright guide and a valve-rack route.",
-      providerRefs: [{ type: "item", id: "item_note_graahl_scratch" }],
-      requirements: [{ kind: "always" }],
-      nextStageTags: ["PipeLead"],
-      weight: 3,
-	  isMainJourney: true,
-    },
-
-    // PIPE LEAD
-    {
-      id: "bc_pipe_lead_mechanic",
-      title: "Pipewright mechanic confirms the route",
+      id: "bc_pipe_lead",
+      title: "Pipewright Lead",
       stageTag: "PipeLead",
-      text: "A Pipewright admits your brother traded a relic for passage through the pipe-networks.",
-      providerRefs: [
-        { type: "npc", id: "npc_pipe_mechanic" },
-        { type: "item", id: "item_valve_ledger" },
-      ],
-      requirements: [{ kind: "respectAtLeast", factionId: "pipe", value: 1 }],
-      nextStageTags: ["DeeperRoute"],
+      text: "",
+      providerRefs: [{ type: "npc", id: "npc_pipe_mechanic" }],
+      requirements: [],
+      nextStageTags: ["Deeper", "UmbralLead"],
       weight: 3,
-	  isMainJourney: true,
+      isMainJourney: true,
     },
-
-    // DEEPER ROUTE
     {
-      id: "bc_deeper_route_root_trade",
-      title: "Root-Cairn traded him safe passage",
-      stageTag: "DeeperRoute",
-      text: "The Root-Cairn claim he passed their traplines after paying in charms and promises.",
-      providerRefs: [
-        { type: "npc", id: "npc_root_scout" },
-        { type: "item", id: "item_root_totem_shard" },
-      ],
-      requirements: [{ kind: "always" }],
-      nextStageTags: ["UmbralWhisper", "AstralWhisper"],
-      weight: 2,
-	  isMainJourney: true,
+      id: "bc_root_lead",
+      title: "Root-Cairn Lead",
+      stageTag: "RootLead",
+      text: "",
+      providerRefs: [{ type: "npc", id: "npc_root_hunter" }],
+      requirements: [],
+      nextStageTags: ["Deeper"],
+      weight: 3,
+      isMainJourney: true,
     },
-
-    // UMBRAL
     {
       id: "bc_umbral_whisper",
-      title: "Umbral whisper: Choir Crypt knows his name",
-      stageTag: "UmbralWhisper",
-      text: "Deep below, the Choir Crypt repeats your brother’s name as if it were a prayer. Someone there can tell you why.",
-      providerRefs: [
-        { type: "npc", id: "npc_umbral_acolyte" },
-        { type: "item", id: "item_crypt_prayer_strip" },
-      ],
-      requirements: [{ kind: "respectAtLeast", factionId: "umbral", value: 2 }],
-      nextStageTags: ["FinalTrail"],
+      title: "Umbral Whisper",
+      stageTag: "UmbralLead",
+      text: "",
+      providerRefs: [{ type: "npc", id: "npc_umbral_acolyte" }],
+      requirements: [],
+      nextStageTags: ["Deeper"],
       weight: 2,
-	  isMainJourney: true,
+      isMainJourney: true,
     },
-
-    // ASTRAL
     {
-      id: "bc_astral_whisper",
-      title: "Astral whisper: a seer hoards the last clue",
-      stageTag: "AstralWhisper",
-      text: "In a hidden niche, an Astral seer keeps a ledger of ‘those who fell inward’. Your brother is written there.",
-      providerRefs: [{ type: "npc", id: "npc_astral_seer" }],
-      requirements: [{ kind: "respectAtLeast", factionId: "astral", value: 2 }],
-      nextStageTags: ["FinalTrail"],
+      id: "bc_deeper",
+      title: "Downward Trail",
+      stageTag: "Deeper",
+      text: "",
+      providerRefs: [{ type: "npc", id: "npc_astral_sage" }],
+      requirements: [],
+      nextStageTags: ["BrotherFound"],
       weight: 2,
-	  isMainJourney: true,
+      isMainJourney: true,
     },
-
-    // FINAL
     {
-      id: "bc_final_trail",
-      title: "Final trail: the last region lies ahead",
-      stageTag: "FinalTrail",
-      text: "The trail narrows. The last witness points toward the furthest regions where the world feels older and less forgiving.",
-      providerRefs: [{ type: "npc", id: "npc_innkeep" }],
-      requirements: [{ kind: "always" }],
+      id: "bc_brother_found",
+      title: "Brother Found",
+      stageTag: "BrotherFound",
+      text: "You finally catch up — the trail ends here.",
+      providerRefs: [{ type: "npc", id: "npc_astral_sage" }],
+      requirements: [],
       nextStageTags: [],
       weight: 1,
-	  isMainJourney: true,
+      isMainJourney: true,
     },
-	
-	{
-  id: "bc_brother_found",
-  title: "Brother Found",
-  stageTag: "End",
-  text: "You find him at last — not as you expected, but undeniably alive.",
-  providerRefs: [{ type: "npc", id: "npc_astral_seer" }],
-  requirements: [{ kind: "always" }],
-  nextStageTags: [],
-  weight: 1,
-  isMainJourney: true,
-},
-
-	
   ];
+
+ const connections: Connection[] = [];
 
   return {
     version: 3,
     factions: [bastion, root, pipe, umbral, astral],
-    locations: loc,
+    locations,
     npcs,
     items,
     breadcrumbs,
-    connections: [],
+    connections,
   };
 }

@@ -1,3 +1,4 @@
+// src/components/BreadcrumbEditor.tsx
 import { useMemo } from "react";
 import type { ContentStore, Indexes, BreadcrumbId, ProviderRef, BreadcrumbOption } from "../core/types";
 import DropZone from "../ui/DropZone";
@@ -40,7 +41,7 @@ export default function BreadcrumbEditor({
     return store.breadcrumbs.find((x) => x.id === breadcrumbId) ?? null;
   }, [store.breadcrumbs, breadcrumbId]);
 
-  const derivedLocations = useMemo(() => {
+  const derivedLocationIds = useMemo(() => {
     if (!b) return [];
     const locIds = new Set<string>();
     for (const ref of b.providerRefs) {
@@ -52,7 +53,7 @@ export default function BreadcrumbEditor({
         if (it?.locationId) locIds.add(it.locationId);
       }
     }
-    return [...locIds].map((id) => ix.locationsById.get(id)?.name ?? id);
+    return [...locIds];
   }, [b, ix]);
 
   function update(patch: Partial<BreadcrumbOption>) {
@@ -118,27 +119,12 @@ export default function BreadcrumbEditor({
         </div>
         <div>
           <label>Stage Tag</label>
-          <input value={b.stageTag} onChange={(e) => update({ stageTag: e.target.value })} placeholder="e.g. GraahlLocked" />
-        </div>
-      </div>
-
-      {/* isMainJourney toggle */}
-      <div className="row" style={{ marginTop: 10, gap: 10, alignItems: "center" }}>
-        <label className="row" style={{ gap: 8, alignItems: "center", margin: 0 }}>
-          <input
-            type="checkbox"
-            checked={!!(b as any).isMainJourney}
-            onChange={(e) => update({ isMainJourney: e.target.checked } as any)}
-          />
-          <span>Eligible for Brother’s Journey</span>
-        </label>
-        <div className="muted" style={{ fontSize: 12 }}>
-          If off, this breadcrumb can exist in the world but will never be chosen for the generated brother chain.
+          <input value={b.stageTag} onChange={(e) => update({ stageTag: e.target.value })} placeholder="e.g. Start" />
         </div>
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <label>Text (what is learned)</label>
+        <label>Text</label>
         <textarea value={b.text} rows={4} onChange={(e) => update({ text: e.target.value })} />
       </div>
 
@@ -147,11 +133,34 @@ export default function BreadcrumbEditor({
           <label>Weight</label>
           <input type="number" min={0} value={b.weight} onChange={(e) => update({ weight: Number(e.target.value) })} />
         </div>
+
         <div>
           <label>Derived Locations</label>
           <div className="muted" style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
-            {derivedLocations.length ? derivedLocations.join(", ") : "—"}
+            {derivedLocationIds.length
+              ? derivedLocationIds.map((id) => ix.locationsById.get(id)?.name ?? id).join(", ")
+              : "—"}
           </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <b>Main Journey</b>
+        <div className="row" style={{ gap: 10, marginTop: 8, alignItems: "center" }}>
+          <label className="row" style={{ gap: 8, alignItems: "center" }}>
+            <input type="checkbox" checked={b.isMainJourney} onChange={(e) => update({ isMainJourney: e.target.checked })} />
+            <span>Allowed in main journey</span>
+          </label>
+
+          <label className="row" style={{ gap: 8, alignItems: "center" }}>
+            <input
+  type="checkbox"
+  checked={!!b.isEnd}
+  onChange={(e) => update({ isEnd: e.target.checked })}
+/>
+
+            <span>Hard end</span>
+          </label>
         </div>
       </div>
 
@@ -159,7 +168,7 @@ export default function BreadcrumbEditor({
       <div style={{ marginTop: 14 }}>
         <b>Providers (pool)</b>
         <div className="muted" style={{ marginTop: 4 }}>
-          Add via Library (Providers tab) or drag-drop. Generator picks one provider from this pool.
+          Add via Library (Providers tab) or drag-drop. Generator picks one eligible provider from this pool.
         </div>
 
         <div style={{ marginTop: 10 }}>
@@ -191,7 +200,7 @@ export default function BreadcrumbEditor({
 
           <DropZone
             title="Drop providers here"
-            hint="Drag NPCs/items from the library, or click them in the Providers tab."
+            hint="Drag NPCs/items from the library."
             acceptPrefix="provider:"
             onDropId={onDropProvider}
           />

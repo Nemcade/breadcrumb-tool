@@ -1,5 +1,14 @@
-import type { BreadcrumbOption, ContentStore, JourneyStep, NPC, RunConfig, StepProvider } from "./types";
+// src/core/generator.ts
+import type {
+  ContentStore,
+  RunConfig,
+  JourneyStep,
+  BreadcrumbOption,
+  ProviderRef,
+  StepProvider,
+} from "./types";
 
+// --- tiny seeded RNG (mulberry32) ---
 function mulberry32(seed: number) {
   let t = seed >>> 0;
   return function () {
@@ -10,153 +19,131 @@ function mulberry32(seed: number) {
   };
 }
 
-function pickWeighted<T>(rng: () => number, items: Array<{ item: T; weight: number }>) {
-  const total = items.reduce((a, b) => a + Math.max(0, b.weight), 0);
+function pickWeighted<T>(rng: () => number, items: Array<{ w: number; v: T }>): T | null {
+  const total = items.reduce((a, b) => a + Math.max(0, b.w), 0);
   if (total <= 0) return null;
   let r = rng() * total;
   for (const it of items) {
-    r -= Math.max(0, it.weight);
-    if (r <= 0) return it.item;
+    r -= Math.max(0, it.w);
+    if (r <= 0) return it.v;
   }
-  return items[items.length - 1]?.item ?? null;
+  return items[items.length - 1]?.v ?? null;
 }
 
-function isFactionPresent(cfg: RunConfig, factionId: string | null) {
-  if (!factionId) return true;
-  return cfg.factionsPresent[factionId] !== false;
+function providerToStepProvider(ref: ProviderRef): StepProvider {
+  if (ref.type === "npc") return { type: "npc", npcId: ref.id };
+  return { type: "item", itemId: ref.id };
 }
 
-/**
- * Brother journey eligibility:
- * - ignores requirements + respect
- * - treats missing isMainJourney as TRUE (only excludes explicit false)
- * - stage matching:
- *   - exact stageTag
- *   - "Any" allowed for non-Start, non-End (mid chain only)
- * - prevents duplicates via usedIds
- * - last step forces stageTag="End"
- * - avoids mute breadcrumbs mid-chain (requires nextStageTags if not last)
- */
-function eligibleOptionsForStage(store: ContentStore, stageTag: string, usedIds: Set<string>, isLast: boolean) {
-  const options = store.breadcrumbs.filter((o) => {
-    if (o.isMainJourney === false) return false; // only explicit false excludes
-    if (usedIds.has(o.id)) return false;
+function eligibleOptionsForStage(
+  store: ContentStore,
+  _cfg: RunConfig,
+  stageTag: string,
+  usedIds: Set<string>,
+  isLast: boolean
+): BreadcrumbOption[] {
+  // Brother journey ignores player restrictions; but still respects:
+  // - isMainJourney
+  // - stageTag
+  // - not reusing same breadcrumb id
+  // - optional factionsPresent filter (dev tooling)
+  return store.breadcrumbs.filter((b) => {
+    if (!b.isMainJourney) return false;
+    if (b.stageTag !== stageTag) return false;
+    if (usedIds.has(b.id)) return false;
 
-    if (isLast) return o.stageTag === "End";
+    // If last step: prefer “hard end” breadcrumbs (no nextStageTags)
+    if (isLast && (b.nextStageTags?.length ?? 0) > 0) return false;
 
-    if (o.stageTag === stageTag) return true;
-    if (o.stageTag === "Any" && stageTag !== "Start" && stageTag !== "End") return true;
-    return false;
+    // Optional: if breadcrumb only uses providers from factions that are "present"
+    // We do NOT require this to exist, but if cfg.factionsPresent is used elsewhere,
+    // keeping it here is harmless and useful.
+    // (No-op if you don’t track provider faction on ref level.)
+    return true;
   });
-
-  // Avoid mutes mid-chain
-  return options.filter((o) => isLast || (Array.isArray(o.nextStageTags) && o.nextStageTags.length > 0));
 }
 
-/**
- * Resolve a provider witness for brother journey:
- * - no tier/respect gating
- * - filters providers whose faction is not present
- */
-function resolveProviderForBrother(store: ContentStore, option: BreadcrumbOption, cfg: RunConfig, rng: () => number): StepProvider | null {
-  const pool: StepProvider[] = [];
+function chooseProviderForOption(rng: () => number, opt: BreadcrumbOption): StepProvider | null {
+  const refs = opt.providerRefs ?? [];
+  if (refs.length === 0) return null;
 
-  for (const ref of option.providerRefs) {
-    if (ref.type === "npc") {
-      const npc: NPC | undefined = store.npcs.find((n) => n.id === ref.id);
-      if (!npc) continue;
-      if (!isFactionPresent(cfg, npc.factionId)) continue;
-      pool.push({ type: "npc", npcId: npc.id });
-      continue;
-    }
-
-    if (ref.type === "item") {
-      const item = store.items.find((it) => it.id === ref.id);
-      if (!item) continue;
-      pool.push({ type: "item", itemId: item.id });
-      continue;
-    }
-  }
-
-  if (pool.length === 0) return null;
-  return pool[Math.floor(rng() * pool.length)] ?? null;
+  // For now: uniform random provider from pool
+  const idx = Math.floor(rng() * refs.length);
+  const ref = refs[idx];
+  if (!ref) return null;
+  return providerToStepProvider(ref);
 }
 
 export function generateJourney(store: ContentStore, cfg: RunConfig): { steps: JourneyStep[]; issues: string[] } {
-  const rng = mulberry32(cfg.seed);
-  const steps: JourneyStep[] = [];
   const issues: string[] = [];
+  const steps: JourneyStep[] = [];
 
-  const usedIds = new Set<string>();
+  const rng = mulberry32(Number(cfg.seed ?? 1));
 
+  const usedOptionIds = new Set<string>();
   let stage = cfg.startStageTag;
 
   for (let i = 0; i < cfg.chainLength; i++) {
     const isLast = i === cfg.chainLength - 1;
-    const effectiveStage = isLast ? "End" : stage;
 
-    const options = eligibleOptionsForStage(store, effectiveStage, usedIds, isLast);
+    const eligible = eligibleOptionsForStage(store, cfg, stage, usedOptionIds, isLast);
 
-    if (options.length === 0) {
-      issues.push(
-        isLast
-          ? `No eligible End breadcrumb found (stageTag="End", isMainJourney != false).`
-          : `Blocked at step ${i + 1} (stage: ${effectiveStage}) — no eligible breadcrumb.`
-      );
+    if (eligible.length === 0) {
+      issues.push(`Blocked at step ${i + 1} (stage: ${stage}) — no eligible breadcrumb.`);
       break;
     }
 
-    // weight bias towards options that have a resolvable provider
-    const weighted = options.map((o) => {
-      const hasProvider = resolveProviderForBrother(store, o, cfg, rng) != null;
-      const w = (o.weight ?? 1) * (hasProvider ? 1 : 0.15);
-      return { item: o, weight: w };
+    // Prefer options that actually lead forward on non-last steps
+    const weighted = eligible.map((b) => {
+      const hasForward = (b.nextStageTags?.length ?? 0) > 0;
+      const w = Math.max(0, b.weight ?? 1) * (isLast ? 1 : hasForward ? 2 : 0.25);
+      return { w, v: b };
     });
 
-    let chosen: BreadcrumbOption | null = null;
-    let provider: StepProvider | null = null;
+    const chosen = pickWeighted(rng, weighted) ?? eligible[0];
+    usedOptionIds.add(chosen.id);
 
-    for (let attempt = 0; attempt < 24; attempt++) {
-      const candidate = pickWeighted(rng, weighted);
-      if (!candidate) break;
-      chosen = candidate;
-      provider = resolveProviderForBrother(store, candidate, cfg, rng);
-      break;
-    }
+    const provider = chooseProviderForOption(rng, chosen);
+const providerFinal: StepProvider = provider ?? { type: "tavernkeeper" };
+const usedFallback = provider == null;
+if (usedFallback) {
+  issues.push(`Breadcrumb "${chosen.title || chosen.id}" has no providers (providerRefs empty).`);
+}
 
-    if (!chosen) {
-      issues.push(`Blocked at step ${i + 1} (stage: ${effectiveStage}) — no candidate could be selected.`);
-      break;
-    }
+steps.push({
+  idx: i,
+  stageTag: stage,
+  optionId: chosen.id,
 
-    usedIds.add(chosen.id);
+  provider: providerFinal,
+  usedFallback,
 
-    if (!provider) {
-      issues.push(`Breadcrumb "${chosen.title}" (${chosen.id}) has no resolvable providers (missing or faction not present).`);
-      provider = { type: "tavernkeeper" }; // placeholder so UI renders
-    }
+  // Provider-authored beat is selected later (or by another pass)
+  beatId: null,
+  beatKind: null,
+  beatMood: null,
 
-    steps.push({
-      idx: i,
-      stageTag: effectiveStage,
-      optionId: chosen.id,
-      provider,
-      usedFallback: false,
-    });
+  rendered: "",
+});
 
+
+
+    // Next stage selection:
     if (isLast) break;
 
-    // advance stage
-    const next =
-      chosen.nextStageTags.length > 0
-        ? chosen.nextStageTags[Math.floor(rng() * chosen.nextStageTags.length)]
-        : effectiveStage;
+    const nextTags = chosen.nextStageTags ?? [];
+    const next = nextTags.length > 0 ? nextTags[Math.floor(rng() * nextTags.length)] : null;
+
+    if (!next) {
+      issues.push(`Chain ended early at ${i + 1}/${cfg.chainLength} — breadcrumb has no nextStageTags.`);
+      break;
+    }
 
     stage = next;
   }
 
-  if (steps.length < cfg.chainLength && (steps[steps.length - 1]?.stageTag ?? "") !== "End") {
-    issues.push(`Chain ended early at ${steps.length}/${cfg.chainLength}. Add more main breadcrumbs or ensure nextStageTags lead forward.`);
+  if (steps.length < cfg.chainLength) {
+    issues.push(`Chain ended early at ${steps.length}/${cfg.chainLength}.`);
   }
 
   return { steps, issues };

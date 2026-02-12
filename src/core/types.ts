@@ -30,6 +30,35 @@ export type Location = {
   tags: string[];
 };
 
+export type BeatKind = "witness" | "trade" | "fight" | "letter" | "party" | "other";
+export type BeatMood = "neutral" | "friendly" | "hostile" | "mysterious";
+
+export type ProviderBeat = {
+  id: Id;
+
+  // “what your brother did to me”
+  kind: BeatKind;
+
+  // drives vibe/animation (you can ignore for now)
+  mood: BeatMood;
+
+  /**
+   * Short “beat text”. Supports lightweight tokens filled by generator:
+   * - {me} -> provider name
+   * - {myLocation} -> provider location name
+   * - {nextProvider} -> next step provider name
+   * - {nextLocation} -> next step provider location name
+   * - {nextBreadcrumb} -> next breadcrumb title
+   */
+  text: string;
+
+  // weighted pick among beats on this provider
+  weight: number;
+
+  // optional: how reputation might swing when player is recognized (future sim)
+  respectDelta: number;
+};
+
 export type NPC = {
   id: NPCId;
   name: string;
@@ -38,6 +67,9 @@ export type NPC = {
   tier: Tier;
   locationId: LocationId | null;
   notes: string;
+
+  // NEW: story beats tied to THIS NPC
+  brotherBeats: ProviderBeat[];
 };
 
 export type ItemKind = "note" | "chest" | "letter" | "corpse" | "relic" | "other";
@@ -49,6 +81,9 @@ export type ItemProvider = {
   locationId: LocationId | null;
   notes: string;
   tags: string[];
+
+  // NEW: story beats tied to THIS item
+  brotherBeats: ProviderBeat[];
 };
 
 export type Requirement =
@@ -65,19 +100,21 @@ export type BreadcrumbOption = {
   id: BreadcrumbId;
   title: string;
   stageTag: string;
+
+  // optional author note; not required for forward-pointing beats
   text: string;
 
-  // chosen pool (one provider will be picked at runtime)
   providerRefs: ProviderRef[];
 
-  // still in schema for now (you plan to remove from UI next)
+  // keep in schema for future player-sim (we’ll remove from breadcrumb UI)
   requirements: Requirement[];
 
   nextStageTags: string[];
   weight: number;
 
-  // NEW: main path toggle (lets generator ignore side content)
+  // main path toggle (lets generator ignore side content)
   isMainJourney: boolean;
+  isEnd?: boolean; // marks option as an endpoint/terminator
 };
 
 export type Gate =
@@ -121,8 +158,17 @@ export type JourneyStep = {
   idx: number;
   stageTag: string;
   optionId: BreadcrumbId;
+
   provider: StepProvider;
   usedFallback: boolean;
+
+  // NEW: provider-authored beat chosen for this step
+  beatId: Id | null;
+  beatKind: BeatKind | null;
+  beatMood: BeatMood | null;
+
+  // NEW: final rendered line for UX/testing
+  rendered: string;
 };
 
 export type Indexes = {
