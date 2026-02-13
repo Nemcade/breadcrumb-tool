@@ -16,7 +16,7 @@ export default function App() {
   const [store, setStore] = useState<ContentStore>(() => loadStore());
 
   // Selection state (lets editors deep-link between tabs)
-  //const [selectedBreadcrumbId, setSelectedBreadcrumbId] = useState<BreadcrumbId | null>(null);
+  const [selectedBreadcrumbId, setSelectedBreadcrumbId] = useState<BreadcrumbId | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<LocationId | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<{ type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null>(null);
 
@@ -80,9 +80,11 @@ const resetToTemplate = resetToDefaults; // or your real template reset, if you 
 
   const nav = useMemo(
     () => ({
-      openBreadcrumb: (_id: BreadcrumbId) => {
+      openBreadcrumb: (id: BreadcrumbId) => {
+  setSelectedBreadcrumbId(id);
   setTab("breadcrumbs");
 },
+
 
       openLocation: (id: LocationId) => {
         setSelectedLocationId(id);
@@ -129,10 +131,14 @@ const resetToTemplate = resetToDefaults; // or your real template reset, if you 
 	  
 	  {tab === "breadcrumbs" && (
   <BreadcrumbsPage
-    store={store}
-    setStore={setStore}
-    ix={ix}
-  />
+  store={store}
+  setStore={setStore}
+  ix={ix}
+  selectedBreadcrumbId={selectedBreadcrumbId}
+  setSelectedBreadcrumbId={setSelectedBreadcrumbId}
+  nav={nav}
+/>
+
 )}
 
 

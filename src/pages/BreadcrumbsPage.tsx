@@ -11,18 +11,34 @@ export default function BreadcrumbsPage({
   store,
   setStore,
   ix,
+  selectedBreadcrumbId,
+  setSelectedBreadcrumbId,
+  nav,
 }: {
   store: ContentStore;
   setStore: React.Dispatch<React.SetStateAction<ContentStore>>;
   ix: Indexes;
+  selectedBreadcrumbId: BreadcrumbId | null;
+  setSelectedBreadcrumbId: (id: BreadcrumbId | null) => void;
+  nav: {
+    openBreadcrumb: (id: BreadcrumbId) => void;
+    openLocation: (id: string) => void; // LocationId, but string is fine here if your types are annoying
+    openProvider: (ref: { type: "npc" | "item"; id: string }) => void;
+  };
 }) {
-  const [selectedId, setSelectedId] = useState<BreadcrumbId | null>(store.breadcrumbs[0]?.id ?? null);
+  const selectedId: BreadcrumbId | null = selectedBreadcrumbId ?? (store.breadcrumbs[0]?.id ?? null);
+
 
   // Keep selection valid if breadcrumb deleted
   useMemo(() => {
-    if (selectedId && store.breadcrumbs.some((b) => b.id === selectedId)) return;
-    setSelectedId(store.breadcrumbs[0]?.id ?? null);
-  }, [store.breadcrumbs, selectedId]);
+  if (!selectedId) {
+    if (store.breadcrumbs[0]) setSelectedBreadcrumbId(store.breadcrumbs[0].id);
+    return;
+  }
+  if (store.breadcrumbs.some((b) => b.id === selectedId)) return;
+  setSelectedBreadcrumbId(store.breadcrumbs[0]?.id ?? null);
+}, [store.breadcrumbs, selectedId, setSelectedBreadcrumbId]);
+
 
   function addBreadcrumb() {
     const id = uid("bc");
@@ -43,13 +59,13 @@ export default function BreadcrumbsPage({
         },
       ],
     }));
-    setSelectedId(id);
+    setSelectedBreadcrumbId(id);
   }
 
   function deleteSelected() {
     if (!selectedId) return;
     setStore((s) => ({ ...s, breadcrumbs: s.breadcrumbs.filter((b) => b.id !== selectedId) }));
-    setSelectedId(null);
+    setSelectedBreadcrumbId(null);
   }
 
   function addProviderToSelected(ref: ProviderRef) {
@@ -97,13 +113,18 @@ export default function BreadcrumbsPage({
           store={store}
           ix={ix}
           selectedBreadcrumbId={selectedId}
-          onSelectBreadcrumb={setSelectedId}
+          onSelectBreadcrumb={(id) => setSelectedBreadcrumbId(id)}
           onAddProviderToSelected={addProviderToSelected}
           onAddNextFromBreadcrumb={addNextFromBreadcrumb}
         />
       </div>
 
-      <BreadcrumbEditor store={store} ix={ix} breadcrumbId={selectedId} setStore={setStore} />
+      <BreadcrumbEditor
+  store={store}
+  ix={ix}
+  breadcrumbId={selectedId}
+  setStore={setStore}
+  nav={nav} />
     </div>
   );
 }

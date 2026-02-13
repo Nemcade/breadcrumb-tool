@@ -25,17 +25,33 @@ function uniq(arr: string[]) {
   return Array.from(new Set(arr));
 }
 
+function firstBreadcrumbForStage(store: ContentStore, stageTag: string): BreadcrumbId | null {
+  const matches = store.breadcrumbs
+    .filter((b) => b.stageTag === stageTag)
+    .slice()
+    .sort((a, b) => (a.title + a.id).localeCompare(b.title + b.id));
+  return matches[0]?.id ?? null;
+}
+
+
 export default function BreadcrumbEditor({
   store,
   ix,
   breadcrumbId,
   setStore,
+  nav,
 }: {
   store: ContentStore;
   ix: Indexes;
   breadcrumbId: BreadcrumbId | null;
   setStore: React.Dispatch<React.SetStateAction<ContentStore>>;
+  nav: {
+    openBreadcrumb: (id: BreadcrumbId) => void;
+    openLocation: (id: string) => void;
+    openProvider: (ref: { type: "npc" | "item"; id: string }) => void;
+  };
 }) {
+
   const b = useMemo(() => {
     if (!breadcrumbId) return null;
     return store.breadcrumbs.find((x) => x.id === breadcrumbId) ?? null;
@@ -137,9 +153,23 @@ export default function BreadcrumbEditor({
         <div>
           <label>Derived Locations</label>
           <div className="muted" style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
-            {derivedLocationIds.length
-              ? derivedLocationIds.map((id) => ix.locationsById.get(id)?.name ?? id).join(", ")
-              : "—"}
+            {derivedLocationIds.length ? (
+  <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+    {derivedLocationIds.map((id) => (
+      <button
+        key={id}
+        onClick={() => nav.openLocation(id)}
+        title="Open location"
+        style={{ textAlign: "left" }}
+      >
+        {ix.locationsById.get(id)?.name ?? id}
+      </button>
+    ))}
+  </div>
+) : (
+  "—"
+)}
+
           </div>
         </div>
       </div>
@@ -183,18 +213,36 @@ export default function BreadcrumbEditor({
           ) : (
             <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
               {b.providerRefs.map((ref) => (
-                <div key={`${ref.type}:${ref.id}`} className="row" style={{ justifyContent: "space-between", gap: 10 }}>
-                  <div style={{ fontSize: 13 }}>{providerShortLabel(ix, ref)}</div>
-                  <button
-                    onClick={() =>
-                      update({ providerRefs: b.providerRefs.filter((x) => !(x.type === ref.type && x.id === ref.id)) })
-                    }
-                    title="Remove"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+  <div
+    key={`${ref.type}:${ref.id}`}
+    className="row"
+    style={{ justifyContent: "space-between", gap: 10 }}
+  >
+    <div style={{ fontSize: 13 }}>{providerShortLabel(ix, ref)}</div>
+
+    <div className="row" style={{ gap: 8 }}>
+      <button
+        onClick={() => nav.openProvider({ type: ref.type, id: ref.id })}
+        title="Open provider"
+      >
+        Open
+      </button>
+      <button
+        onClick={() =>
+          update({
+            providerRefs: b.providerRefs.filter(
+              (x) => !(x.type === ref.type && x.id === ref.id)
+            ),
+          })
+        }
+        title="Remove"
+      >
+        Remove
+      </button>
+    </div>
+  </div>
+))}
+
             </div>
           )}
 
@@ -225,14 +273,33 @@ export default function BreadcrumbEditor({
             </div>
           ) : (
             <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-              {(b.nextStageTags ?? []).map((t) => (
-                <div key={t} className="row" style={{ justifyContent: "space-between", gap: 10 }}>
-                  <div style={{ fontSize: 13 }}>{stageTagSummary(store, t)}</div>
-                  <button onClick={() => removeNextStageTag(t)} title="Remove">
-                    Remove
-                  </button>
-                </div>
-              ))}
+              {(b.nextStageTags ?? []).map((t) => {
+  const targetId = firstBreadcrumbForStage(store, t);
+
+  return (
+    <div
+      key={t}
+      className="row"
+      style={{ justifyContent: "space-between", gap: 10 }}
+    >
+      <div style={{ fontSize: 13 }}>{stageTagSummary(store, t)}</div>
+
+      <div className="row" style={{ gap: 8 }}>
+        <button
+          disabled={!targetId}
+          onClick={() => targetId && nav.openBreadcrumb(targetId)}
+          title={targetId ? "Open a breadcrumb in this stage" : "No breadcrumbs found for this stageTag"}
+        >
+          Open
+        </button>
+        <button onClick={() => removeNextStageTag(t)} title="Remove">
+          Remove
+        </button>
+      </div>
+    </div>
+  );
+})}
+
             </div>
           )}
 
