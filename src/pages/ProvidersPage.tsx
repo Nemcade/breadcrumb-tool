@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react";
-import type { ContentStore, Indexes, BreadcrumbId, LocationId, NPCId, ItemId } from "../core/types";
+import { useEffect, useMemo, useState } from "react";
+import type { ContentStore, Indexes, BreadcrumbId, LocationId, NPCId, ItemId, FactionId } from "../core/types";
 import ProviderLibraryPanel from "../components/ProviderLibraryPanel";
 import ProviderEditor from "../components/ProviderEditor";
 
@@ -39,6 +39,11 @@ export default function ProvidersPage({
     else if (store.items[0]) setSelectedProvider({ type: "item", id: store.items[0].id });
     else setSelectedProvider(null);
   }, [selected, store.npcs, store.items, setSelectedProvider]);
+  
+	const [providersTab, setProvidersTab] = useState<"npcs" | "items" | "locations">("npcs");
+	const [filterFactionId, setFilterFactionId] = useState<FactionId | "any">("any");
+	const [filterLocationId, setFilterLocationId] = useState<LocationId | "any">("any");
+
 
   function addNPC() {
     const id = `npc_${Math.random().toString(36).slice(2, 9)}`;
@@ -49,10 +54,10 @@ export default function ProvidersPage({
         {
           id,
           name: "New NPC",
-          factionId: null,
+          factionId: filterFactionId === "any" ? null : filterFactionId,
           roles: [],
           tier: 0,
-          locationId: null,
+          locationId: filterLocationId === "any" ? null : filterLocationId,
           notes: "",
           brotherBeats: [],
         },
@@ -71,7 +76,7 @@ export default function ProvidersPage({
           id,
           name: "New Item",
           kind: "note",
-          locationId: null,
+          locationId: filterLocationId === "any" ? null : filterLocationId,
           notes: "",
           tags: [],
           brotherBeats: [],
@@ -123,7 +128,19 @@ export default function ProvidersPage({
           </span>
         </div>
 
-        <ProviderLibraryPanel store={store} ix={ix} selected={selected} onSelect={setSelectedProvider} />
+        <ProviderLibraryPanel
+  store={store}
+  ix={ix}
+  selected={selected}
+  onSelect={setSelectedProvider}
+  tab={providersTab}
+  setTab={setProvidersTab}
+  filterFactionId={filterFactionId}
+  setFilterFactionId={setFilterFactionId}
+  filterLocationId={filterLocationId}
+  setFilterLocationId={setFilterLocationId}
+/>
+
       </div>
 
       <ProviderEditor

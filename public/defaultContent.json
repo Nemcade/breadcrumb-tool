@@ -16,234 +16,282 @@
   ],
   "locations": [
     {
-      "id": "reg_surface",
-      "name": "Surface",
-      "kind": "region",
-      "parentId": null,
       "biomeIds": [],
       "defaultBiomeId": "loc_w0feiu3",
       "tags": [
         "surface"
-      ]
+      ],
+      "id": "reg_surface",
+      "name": "Area1",
+      "kind": "region",
+      "parentId": null
     },
     {
-      "id": "reg_depths",
-      "name": "Depths",
-      "kind": "region",
-      "parentId": null,
       "biomeIds": [],
       "defaultBiomeId": null,
       "tags": [
         "deep"
-      ]
+      ],
+      "id": "reg_depths",
+      "name": "Area2",
+      "kind": "region",
+      "parentId": null
     },
     {
-      "id": "set_gate",
-      "name": "Gate Settlement",
-      "kind": "settlement",
-      "parentId": "reg_surface",
       "biomeIds": [],
       "defaultBiomeId": null,
       "tags": [
         "hub"
-      ]
+      ],
+      "id": "set_gate",
+      "name": "Mining Settlement",
+      "kind": "settlement",
+      "parentId": "reg_surface"
     },
     {
-      "id": "lm_tavern",
-      "name": "The Bent Lantern (Tavern)",
-      "kind": "landmark",
-      "parentId": "set_gate",
       "biomeIds": [],
       "defaultBiomeId": null,
       "tags": [
         "tavern"
-      ]
+      ],
+      "id": "lm_tavern",
+      "name": "The Bent Lantern",
+      "kind": "landmark",
+      "parentId": "set_gate"
     },
     {
-      "id": "bio_roots",
-      "name": "Root-Cairn Tunnels",
-      "kind": "biome",
-      "parentId": null,
       "biomeIds": [],
       "defaultBiomeId": null,
       "tags": [
         "caves"
-      ]
+      ],
+      "id": "bio_roots",
+      "name": "Root-Cairn",
+      "kind": "biome",
+      "parentId": null
     },
     {
-      "id": "lm_graahl",
-      "name": "Graahl Door",
-      "kind": "landmark",
-      "parentId": "reg_surface",
       "biomeIds": [],
       "defaultBiomeId": null,
       "tags": [
-        "gate"
-      ]
+        "statue"
+      ],
+      "id": "lm_graahl",
+      "name": "Statue of a Hero",
+      "kind": "landmark",
+      "parentId": "set_gate"
     },
     {
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": [],
       "id": "loc_he6dubybhqi",
-      "name": "New Location",
+      "name": "Area3",
       "kind": "region",
-      "parentId": null,
-      "biomeIds": [],
-      "defaultBiomeId": null,
-      "tags": []
+      "parentId": null
     },
     {
-      "id": "loc_w0feiu3",
-      "name": "New biome",
-      "kind": "biome",
-      "parentId": null,
       "biomeIds": [],
       "defaultBiomeId": null,
-      "tags": []
+      "tags": [],
+      "id": "loc_w0feiu3",
+      "name": "Mine",
+      "kind": "biome",
+      "parentId": null
+    },
+    {
+      "biomeIds": [],
+      "defaultBiomeId": null,
+      "tags": [],
+      "id": "loc_0ax374g",
+      "name": "Holding Cell",
+      "kind": "landmark",
+      "parentId": null
     }
   ],
   "npcs": [
     {
-      "id": "npc_innkeep",
-      "name": "Innkeep Salla",
-      "factionId": null,
       "roles": [
         "tavernkeeper",
         "host"
       ],
+      "notes": "Knows rumors. Only gives direction when everyone else is blocked.",
+      "brotherBeats": [
+        {
+          "id": "bb_83aw21ojfgx",
+          "kind": "witness",
+          "mood": "neutral",
+          "text": "I saw him… He mentioned {nextProvider} in {nextLocation}.",
+          "weight": 1,
+          "respectDelta": 0
+        }
+      ],
+      "id": "npc_innkeep",
+      "name": "Innkeep Sahlia",
+      "factionId": null,
       "tier": 0,
-      "locationId": "loc_he6dubybhqi",
-      "notes": "Knows rumors. Only gives direction when everyone else is blocked."
+      "locationId": "loc_he6dubybhqi"
     },
     {
-      "id": "npc_chief",
-      "name": "Vell the Chieftain",
-      "factionId": "bastion",
       "roles": [
         "chieftain"
       ],
+      "notes": "Holds keys, demands service or submission.",
+      "brotherBeats": [],
+      "id": "npc_chief",
+      "name": "Vell the Chieftain",
+      "factionId": "bastion",
       "tier": 3,
-      "locationId": "bio_roots",
-      "notes": "Holds keys, demands service or submission."
+      "locationId": "bio_roots"
     },
     {
-      "id": "npc_mech",
-      "name": "Mivvi Brass-Ear",
-      "factionId": "pipe",
       "roles": [
         "mechanic",
         "merchant"
       ],
+      "notes": "Trades passage intel for favors.",
+      "brotherBeats": [],
+      "id": "npc_mech",
+      "name": "Mivvi Brass-Ear",
+      "factionId": "pipe",
       "tier": 1,
-      "locationId": "lm_graahl",
-      "notes": "Trades passage intel for favors."
+      "locationId": "lm_graahl"
     },
     {
-      "id": "npc_scout",
-      "name": "Rusk of the Roots",
-      "factionId": "root",
       "roles": [
         "scout",
         "trapper"
       ],
+      "notes": "Moves unseen, leaves signs in fungus and bone.",
+      "brotherBeats": [
+        {
+          "id": "beat_qnll0hv",
+          "kind": "witness",
+          "mood": "neutral",
+          "text": "{me} saw your brother near {nextLocation}.",
+          "weight": 1,
+          "respectDelta": 0
+        }
+      ],
+      "id": "npc_scout",
+      "name": "Rusk of the Roots",
+      "factionId": "root",
       "tier": 1,
-      "locationId": "bio_roots",
-      "notes": "Moves unseen, leaves signs in fungus and bone."
+      "locationId": "bio_roots"
     },
     {
-      "id": "npc_usrs1dg",
-      "name": "Start Guy",
-      "factionId": null,
       "roles": [
         "guide"
       ],
+      "notes": "",
+      "brotherBeats": [
+        {
+          "id": "bb_8z1b75fjhdx",
+          "kind": "witness",
+          "mood": "neutral",
+          "text": "I saw him… He mentioned {nextProvider} in {nextLocation}.",
+          "weight": 1,
+          "respectDelta": 0
+        }
+      ],
+      "id": "npc_usrs1dg",
+      "name": "Start Guy",
+      "factionId": null,
       "tier": 0,
-      "locationId": "reg_surface",
-      "notes": ""
+      "locationId": "reg_surface"
     },
     {
-      "id": "npc_8irgk3t",
-      "name": "End Guy",
-      "factionId": null,
       "roles": [
         "guard"
       ],
-      "tier": 0,
-      "locationId": null,
-      "notes": ""
+      "notes": "",
+      "brotherBeats": [
+        {
+          "id": "beat_ttqrzcv",
+          "kind": "fight",
+          "mood": "hostile",
+          "text": "You have to defeat me to get to your brother.",
+          "weight": 2,
+          "respectDelta": 3
+        }
+      ],
+      "id": "npc_8irgk3t",
+      "name": "End Guy",
+      "factionId": null,
+      "tier": 3,
+      "locationId": "loc_0ax374g"
     }
   ],
   "items": [
     {
+      "notes": "",
+      "tags": [
+        "migrated"
+      ],
+      "brotherBeats": [],
       "id": "item_kx9rm62che3",
       "name": "Chest (migrated)",
       "kind": "chest",
-      "locationId": null,
+      "locationId": null
+    },
+    {
       "notes": "",
       "tags": [
         "migrated"
-      ]
-    },
-    {
+      ],
+      "brotherBeats": [],
       "id": "item_6xaef40che3",
       "name": "Chest (migrated)",
       "kind": "chest",
-      "locationId": null,
+      "locationId": null
+    },
+    {
       "notes": "",
       "tags": [
         "migrated"
-      ]
-    },
-    {
+      ],
+      "brotherBeats": [],
       "id": "item_hmvu1y6che3",
       "name": "Note (migrated)",
       "kind": "note",
-      "locationId": null,
+      "locationId": null
+    },
+    {
       "notes": "",
       "tags": [
         "migrated"
-      ]
-    },
-    {
+      ],
+      "brotherBeats": [],
       "id": "item_3n9nx9xche3",
       "name": "Note (migrated)",
       "kind": "note",
-      "locationId": null,
+      "locationId": null
+    },
+    {
       "notes": "",
       "tags": [
         "migrated"
-      ]
-    },
-    {
+      ],
+      "brotherBeats": [],
       "id": "item_me3ep5gche3",
       "name": "Chest (migrated)",
       "kind": "chest",
-      "locationId": null,
-      "notes": "",
-      "tags": [
-        "migrated"
-      ]
-    },
-    {
-      "id": "item_9lzsi0rche3",
-      "name": "Note (migrated)",
-      "kind": "note",
-      "locationId": null,
-      "notes": "",
-      "tags": [
-        "migrated"
-      ]
+      "locationId": null
     }
   ],
   "breadcrumbs": [
     {
-      "id": "bc_start_rumor",
-      "title": "Rumor: argument about Graahl",
-      "stageTag": "GraahlLocked",
       "text": "You hear your brother argued with an officer about a sealed door called Graahl.",
+      "requirements": [],
+      "nextStageTags": [
+        "4.1"
+      ],
+      "weight": 3,
+      "isMainJourney": true,
+      "id": "bc_start_rumor",
+      "title": "Step3.1",
+      "stageTag": "3.1",
       "providerRefs": [
-        {
-          "type": "npc",
-          "id": "npc_innkeep"
-        },
         {
           "type": "npc",
           "id": "npc_mech"
@@ -253,30 +301,10 @@
           "id": "item_kx9rm62che3"
         }
       ],
-      "requirements": [],
-      "nextStageTags": [
-        "GraahlLocked",
-        "GetKey",
-        "Start"
-      ],
-      "weight": 3,
-      "isMainJourney": true
+      "leadType": "trade"
     },
     {
-      "id": "bc_graahl_locked",
-      "title": "Graahl is locked (key kept by leadership)",
-      "stageTag": "GraahlLocked",
       "text": "Graahl is sealed. The key is held under authority—by favor, theft, or force.",
-      "providerRefs": [
-        {
-          "type": "npc",
-          "id": "npc_chief"
-        },
-        {
-          "type": "item",
-          "id": "item_kx9rm62che3"
-        }
-      ],
       "requirements": [
         {
           "kind": "respectAtLeast",
@@ -285,22 +313,22 @@
         }
       ],
       "nextStageTags": [
-        "GetKey"
+        "End"
       ],
       "weight": 3,
-      "isMainJourney": true
-    },
-    {
-      "id": "bc_get_key_job",
-      "title": "Contract: break a rival trapline",
-      "stageTag": "GetKey",
-      "text": "A contract is offered: sabotage a Root-Cairn trapline to earn standing.",
+      "isMainJourney": true,
+      "id": "bc_graahl_locked",
+      "title": "Step6.1",
+      "stageTag": "6.1",
       "providerRefs": [
         {
           "type": "npc",
           "id": "npc_chief"
         }
-      ],
+      ]
+    },
+    {
+      "text": "A contract is offered: sabotage a Root-Cairn trapline to earn standing.",
       "requirements": [
         {
           "kind": "respectAtLeast",
@@ -309,16 +337,39 @@
         }
       ],
       "nextStageTags": [
-        "EnterGraahl"
+        "5.1"
       ],
       "weight": 2,
-      "isMainJourney": true
+      "isMainJourney": true,
+      "id": "bc_get_key_job",
+      "title": "Step4.1",
+      "stageTag": "4.1",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_chief"
+        },
+        {
+          "type": "npc",
+          "id": "npc_mech"
+        }
+      ]
     },
     {
-      "id": "bc_get_key_heist",
-      "title": "Heist: key in a chest",
-      "stageTag": "GetKey",
       "text": "A chest behind the barracks holds the key—unguarded at shift-change.",
+      "requirements": [
+        {
+          "kind": "always"
+        }
+      ],
+      "nextStageTags": [
+        "6.1"
+      ],
+      "weight": 2,
+      "isMainJourney": true,
+      "id": "bc_get_key_heist",
+      "title": "Step5.1",
+      "stageTag": "5.1",
       "providerRefs": [
         {
           "type": "item",
@@ -328,23 +379,23 @@
           "type": "item",
           "id": "item_hmvu1y6che3"
         }
-      ],
+      ]
+    },
+    {
+      "text": "In Graahl’s wet halls you find a mark and a name: a Pipewright who guided him deeper.",
       "requirements": [
         {
           "kind": "always"
         }
       ],
       "nextStageTags": [
-        "EnterGraahl"
+        "2.1"
       ],
-      "weight": 2,
-      "isMainJourney": true
-    },
-    {
+      "weight": 3,
+      "isMainJourney": true,
       "id": "bc_enter_graahl",
-      "title": "Inside Graahl: Pipewright lead",
-      "stageTag": "EnterGraahl",
-      "text": "In Graahl’s wet halls you find a mark and a name: a Pipewright who guided him deeper.",
+      "title": "Step1.1",
+      "stageTag": "1.1",
       "providerRefs": [
         {
           "type": "item",
@@ -354,33 +405,10 @@
           "type": "item",
           "id": "item_me3ep5gche3"
         }
-      ],
-      "requirements": [
-        {
-          "kind": "always"
-        }
-      ],
-      "nextStageTags": [
-        "PipeLead"
-      ],
-      "weight": 3,
-      "isMainJourney": true
+      ]
     },
     {
-      "id": "bc_pipe_lead",
-      "title": "Pipewright mechanic confesses a route",
-      "stageTag": "PipeLead",
       "text": "A Pipewright admits your brother traded a relic for passage through the pipe-networks.",
-      "providerRefs": [
-        {
-          "type": "npc",
-          "id": "npc_mech"
-        },
-        {
-          "type": "item",
-          "id": "item_9lzsi0rche3"
-        }
-      ],
       "requirements": [
         {
           "kind": "respectAtLeast",
@@ -389,68 +417,77 @@
         }
       ],
       "nextStageTags": [
-        "End"
+        "2.1"
       ],
       "weight": 3,
-      "isMainJourney": true
-    },
-    {
-      "id": "bc_fallback_inn",
-      "title": "Innkeeper points you onward (fallback)",
-      "stageTag": "Any",
-      "text": "The innkeeper won’t name names—only a direction, and a warning about who controls the route today.",
+      "isMainJourney": true,
+      "id": "bc_pipe_lead",
+      "title": "Step1.2",
+      "stageTag": "1.2",
       "providerRefs": [
         {
           "type": "npc",
-          "id": "npc_innkeep"
+          "id": "npc_mech"
         }
-      ],
+      ]
+    },
+    {
+      "text": "The innkeeper won’t name names—only a direction, and a warning about who controls the route today.",
       "requirements": [
         {
           "kind": "blockedFallbackOnly"
         }
       ],
       "nextStageTags": [
-        "DeeperRoute"
+        "3.1"
       ],
       "weight": 1,
-      "isMainJourney": false
+      "isMainJourney": true,
+      "id": "bc_fallback_inn",
+      "title": "Step2.1",
+      "stageTag": "2.1",
+      "providerRefs": [
+        {
+          "type": "npc",
+          "id": "npc_innkeep"
+        }
+      ]
     },
     {
+      "text": "",
+      "requirements": [],
+      "nextStageTags": [
+        "1.1",
+        "1.2"
+      ],
+      "weight": 1,
+      "isMainJourney": true,
       "id": "bc_lgxrvb8",
       "title": "Start",
       "stageTag": "Start",
-      "text": "",
       "providerRefs": [
         {
           "type": "npc",
           "id": "npc_usrs1dg"
         }
-      ],
-      "requirements": [],
-      "nextStageTags": [
-        "GraahlLocked"
-      ],
-      "weight": 1,
-      "isMainJourney": true
+      ]
     },
     {
+      "text": "",
+      "requirements": [],
+      "nextStageTags": [],
+      "weight": 1,
+      "isMainJourney": true,
       "id": "bc_4qjn402",
       "title": "End",
       "stageTag": "End",
-      "text": "",
       "providerRefs": [
         {
           "type": "npc",
           "id": "npc_8irgk3t"
         }
       ],
-      "requirements": [],
-      "nextStageTags": [
-        "GraahlLocked"
-      ],
-      "weight": 1,
-      "isMainJourney": true
+      "isEnd": true
     }
   ],
   "connections": [

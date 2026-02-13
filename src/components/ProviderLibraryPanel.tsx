@@ -15,17 +15,34 @@ export default function ProviderLibraryPanel({
   ix,
   selected,
   onSelect,
+  tab,
+  setTab,
+  filterFactionId,
+  setFilterFactionId,
+  filterLocationId,
+  setFilterLocationId,
 }: {
   store: ContentStore;
   ix: Indexes;
   selected: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null;
   onSelect: (p: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId } | null) => void;
+
+  tab: "npcs" | "items" | "locations";
+  setTab: (t: "npcs" | "items" | "locations") => void;
+
+  filterFactionId: string | "any";
+  setFilterFactionId: (id: string | "any") => void;
+
+  filterLocationId: LocationId | "any";
+  setFilterLocationId: (id: LocationId | "any") => void;
 }) {
-  const [tab, setTab] = useState<"npcs" | "items" | "locations">("npcs");
   const [q, setQ] = useState("");
+
 
   const npcs = useMemo(() => {
     const rows = store.npcs.filter((n) => {
+	  if (filterFactionId !== "any" && n.factionId !== filterFactionId) return false;
+	  if (filterLocationId !== "any" && n.locationId !== filterLocationId) return false;
       if (!q.trim()) return true;
       const fac = n.factionId ? ix.factionsById.get(n.factionId)?.name ?? "" : "unaff";
       const loc = n.locationId ? ix.locationsById.get(n.locationId)?.name ?? "" : "";
@@ -33,7 +50,8 @@ export default function ProviderLibraryPanel({
     });
     rows.sort((a, b) => a.name.localeCompare(b.name));
     return rows;
-  }, [store.npcs, ix, q]);
+  }, [store.npcs, ix, q, filterFactionId, filterLocationId]);
+
 
   const items = useMemo(() => {
     const rows = store.items.filter((it) => {
@@ -80,9 +98,60 @@ export default function ProviderLibraryPanel({
         </button>
       </div>
 
-      <div style={{ marginTop: 10 }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" />
-      </div>
+      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" />
+
+  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+    {tab === "npcs" && (
+      <select
+        value={filterFactionId}
+        onChange={(e) => setFilterFactionId(e.target.value as any)}
+        title="Filter NPCs by faction"
+      >
+        <option value="any">All factions</option>
+        <option value="">Unaffiliated</option>
+        {store.factions
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+      </select>
+    )}
+
+    {tab !== "locations" && (
+      <select
+        value={filterLocationId}
+        onChange={(e) => setFilterLocationId(e.target.value as any)}
+        title="Filter by location"
+      >
+        <option value="any">All locations</option>
+        <option value="">No location</option>
+        {store.locations
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name} ({l.kind})
+            </option>
+          ))}
+      </select>
+    )}
+
+    <button
+      onClick={() => {
+        setFilterFactionId("any");
+        setFilterLocationId("any");
+      }}
+      title="Clear filters"
+    >
+      Clear
+    </button>
+  </div>
+</div>
+
 
       {tab === "npcs" && (
         <div style={{ marginTop: 10 }}>

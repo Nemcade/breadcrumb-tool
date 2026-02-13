@@ -272,11 +272,33 @@ export default function ProviderEditor({
 
         <div className="grid2" style={{ marginTop: 12 }}>
           <div>
-            <label>Faction</label>
-            <div className="muted" style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
-              {facName}
-            </div>
-          </div>
+  <label>Faction</label>
+  <select
+    value={npc.factionId ?? ""}
+    onChange={(e) => {
+      const factionId = e.target.value ? e.target.value : null;
+      setStore((s) => ({
+        ...s,
+        npcs: s.npcs.map((n) => (n.id === npc.id ? { ...n, factionId } : n)),
+      }));
+    }}
+  >
+    <option value="">Unaffiliated</option>
+    {store.factions
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((f) => (
+        <option key={f.id} value={f.id}>
+          {f.name}
+        </option>
+      ))}
+  </select>
+
+  <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
+    Current: {facName}
+  </div>
+</div>
+
 
           <div>
             <label>Location</label>
