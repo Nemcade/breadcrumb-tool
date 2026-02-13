@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ContentStore, Indexes, ProviderRef, BreadcrumbId } from "../core/types";
 import BreadcrumbEditor from "../components/BreadcrumbEditor";
 import LibraryPanel from "../components/LibraryPanel";

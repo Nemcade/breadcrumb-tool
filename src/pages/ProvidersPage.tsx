@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ContentStore, Indexes, BreadcrumbId, LocationId, NPCId, ItemId, FactionId } from "../core/types";
+import type {
+  ContentStore,
+  Indexes,
+  BreadcrumbId,
+  LocationId,
+  NPCId,
+  ItemId,
+  FactionId,
+} from "../core/types";
 import ProviderLibraryPanel from "../components/ProviderLibraryPanel";
 import ProviderEditor from "../components/ProviderEditor";
+
+const ANY = "any";
+const NONE = "__none__";
 
 export default function ProvidersPage({
   store,
@@ -22,7 +33,8 @@ export default function ProvidersPage({
     openProvider: (ref: { type: "npc"; id: NPCId } | { type: "item"; id: ItemId }) => void;
   };
 }) {
-  const selected = selectedProvider ?? (store.npcs[0] ? ({ type: "npc", id: store.npcs[0].id } as const) : null);
+  const selected =
+    selectedProvider ?? (store.npcs[0] ? ({ type: "npc", id: store.npcs[0].id } as const) : null);
 
   // keep selection valid
   useEffect(() => {
@@ -39,14 +51,27 @@ export default function ProvidersPage({
     else if (store.items[0]) setSelectedProvider({ type: "item", id: store.items[0].id });
     else setSelectedProvider(null);
   }, [selected, store.npcs, store.items, setSelectedProvider]);
-  
-	const [providersTab, setProvidersTab] = useState<"npcs" | "items" | "locations">("npcs");
-	const [filterFactionId, setFilterFactionId] = useState<FactionId | "any">("any");
-	const [filterLocationId, setFilterLocationId] = useState<LocationId | "any">("any");
 
+  const [providersTab, setProvidersTab] = useState<"npcs" | "items" | "locations">("npcs");
+
+  // Filters (controlled by page so Add can prefill)
+  const [filterFactionId, setFilterFactionId] = useState<FactionId | typeof ANY | typeof NONE>(ANY);
+  const [filterLocationId, setFilterLocationId] = useState<LocationId | typeof ANY | typeof NONE>(ANY);
+  const [filterTier, setFilterTier] = useState<number | typeof ANY>(ANY);
+
+  const [filterItemKind, setFilterItemKind] = useState<string | typeof ANY>(ANY);
 
   function addNPC() {
     const id = `npc_${Math.random().toString(36).slice(2, 9)}`;
+
+    const factionId =
+      filterFactionId === ANY ? null : filterFactionId === NONE ? null : filterFactionId;
+
+    const locationId =
+      filterLocationId === ANY ? null : filterLocationId === NONE ? null : filterLocationId;
+
+    const tier = filterTier === ANY ? 0 : filterTier;
+
     setStore((s) => ({
       ...s,
       npcs: [
@@ -54,10 +79,10 @@ export default function ProvidersPage({
         {
           id,
           name: "New NPC",
-          factionId: filterFactionId === "any" ? null : filterFactionId,
+          factionId,
           roles: [],
-          tier: 0,
-          locationId: filterLocationId === "any" ? null : filterLocationId,
+          tier,
+          locationId,
           notes: "",
           brotherBeats: [],
         },
@@ -68,6 +93,13 @@ export default function ProvidersPage({
 
   function addItem() {
     const id = `item_${Math.random().toString(36).slice(2, 9)}`;
+
+    const locationId =
+      filterLocationId === ANY ? null : filterLocationId === NONE ? null : filterLocationId;
+
+    // Keep repo default "note" unless user has filtered a kind
+    const kind = (filterItemKind === ANY ? "note" : filterItemKind) as any;
+
     setStore((s) => ({
       ...s,
       items: [
@@ -75,8 +107,8 @@ export default function ProvidersPage({
         {
           id,
           name: "New Item",
-          kind: "note",
-          locationId: filterLocationId === "any" ? null : filterLocationId,
+          kind,
+          locationId,
           notes: "",
           tags: [],
           brotherBeats: [],
@@ -108,7 +140,18 @@ export default function ProvidersPage({
     setSelectedProvider(null);
   }
 
-  const counts = useMemo(() => ({ npcs: store.npcs.length, items: store.items.length }), [store.npcs.length, store.items.length]);
+  const counts = useMemo(
+    () => ({ npcs: store.npcs.length, items: store.items.length }),
+    [store.npcs.length, store.items.length]
+  );
+
+  // For item kind filter options: use actual kinds in your data (plus "note" safety)
+  const itemKindOptions = useMemo(() => {
+    const set = new Set<string>();
+    set.add("note");
+    for (const it of store.items) set.add((it as any).kind);
+    return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [store.items]);
 
   return (
     <div className="grid2" style={{ gap: 12, alignItems: "start" }}>
@@ -129,27 +172,25 @@ export default function ProvidersPage({
         </div>
 
         <ProviderLibraryPanel
-  store={store}
-  ix={ix}
-  selected={selected}
-  onSelect={setSelectedProvider}
-  tab={providersTab}
-  setTab={setProvidersTab}
-  filterFactionId={filterFactionId}
-  setFilterFactionId={setFilterFactionId}
-  filterLocationId={filterLocationId}
-  setFilterLocationId={setFilterLocationId}
-/>
-
+          store={store}
+          ix={ix}
+          selected={selected}
+          onSelect={setSelectedProvider}
+          tab={providersTab}
+          setTab={setProvidersTab}
+          filterFactionId={filterFactionId}
+          setFilterFactionId={setFilterFactionId}
+          filterLocationId={filterLocationId}
+          setFilterLocationId={setFilterLocationId}
+          filterTier={filterTier}
+          setFilterTier={setFilterTier}
+          filterItemKind={filterItemKind}
+          setFilterItemKind={setFilterItemKind}
+          itemKindOptions={itemKindOptions}
+        />
       </div>
 
-      <ProviderEditor
-        store={store}
-        ix={ix}
-        selected={selected}
-        setStore={setStore}
-        nav={nav}
-      />
+      <ProviderEditor store={store} ix={ix} selected={selected} setStore={setStore} nav={nav} />
     </div>
   );
 }
