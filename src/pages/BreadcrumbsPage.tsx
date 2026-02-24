@@ -98,7 +98,7 @@ export default function BreadcrumbsPage({
   }
 
   return (
-    <div className="grid2" style={{ gap: 12, alignItems: "start" }}>
+    <div className="gridPage">
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div className="row" style={{ gap: 8 }}>
           <button className="primary" onClick={addBreadcrumb} style={{ flex: 1 }}>

@@ -147,7 +147,24 @@ export default function GeneratePage({
                   <div>
                     <b>{opt.title}</b> {s.usedFallback ? <span style={{ color: "#b00" }}>(fallback)</span> : null}
                   </div>
-                  <div className="muted">{opt.text}</div>
+                                    <div className="muted">
+                    <b>Scene:</b> {opt.text}
+                  </div>
+
+                  {(s as any).rendered ? (
+                    <div style={{ fontWeight: 600, marginTop: 4 }}>
+                      <b>Dialogue:</b> {(s as any).rendered}
+                    </div>
+                  ) : null}
+
+                  {(s as any).rendered && ((s as any).beatKind || (s as any).beatMood) ? (
+                    <div className="muted" style={{ marginTop: 4 }}>
+                      <b>Beat:</b> {(s as any).beatKind ?? "—"} · {(s as any).beatMood ?? "—"}
+                    </div>
+                  ) : null}
+
+
+
                   <div className="muted" style={{ marginTop: 4 }}>
                     <b>Stage:</b> {s.stageTag} · <b>Provider:</b> {providerStr} · <b>Next:</b>{" "}
                     {opt.nextStageTags.join(", ") || "—"}
